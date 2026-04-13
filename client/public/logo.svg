@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="48" viewBox="0 0 200 48" fill="none">
+  <defs>
+    <linearGradient id="logobg" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#2563eb"/>
+      <stop offset="100%" stop-color="#1d4ed8"/>
+    </linearGradient>
+    <linearGradient id="logoaccent" x1="10" y1="8" x2="38" y2="40" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#60a5fa"/>
+      <stop offset="100%" stop-color="#3b82f6"/>
+    </linearGradient>
+  </defs>
+  <!-- Icon -->
+  <rect width="42" height="42" y="3" rx="10" fill="url(#logobg)"/>
+  <path d="M17.5 16.5C17.5 14.01 19.51 12 22 12H26C28.49 12 30.5 14.01 30.5 16.5C30.5 18.99 28.49 21 26 21H24" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M24.5 27.5C24.5 29.99 22.49 32 20 32H16C13.51 32 11.5 29.99 11.5 27.5C11.5 25.01 13.51 23 16 23H18" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M19 25L23 19" stroke="url(#logoaccent)" stroke-width="2.5" stroke-linecap="round"/>
+  <!-- Text -->
+  <text x="52" y="20" font-family="system-ui, -apple-system, sans-serif" font-weight="800" font-size="22" fill="#1e293b" letter-spacing="-0.5">Job</text>
+  <text x="89" y="20" font-family="system-ui, -apple-system, sans-serif" font-weight="800" font-size="22" fill="#2563eb" letter-spacing="-0.5">Linker</text>
+  <text x="52" y="36" font-family="system-ui, -apple-system, sans-serif" font-weight="500" font-size="10" fill="#94a3b8" letter-spacing="2">RECRUTEMENT</text>
+</svg>
