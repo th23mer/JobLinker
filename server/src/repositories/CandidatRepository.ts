@@ -31,6 +31,14 @@ export class CandidatRepository implements ICandidatRepository {
     return rows[0] || null;
   }
 
+  async updatePassword(id: number, hashedPassword: string): Promise<boolean> {
+    const result = await this.pool.query(
+      "UPDATE candidat SET mot_de_passe = $1 WHERE id = $2",
+      [hashedPassword, id]
+    );
+    return (result.rowCount || 0) > 0;
+  }
+
   async create(data: Omit<Candidat, "id">): Promise<Candidat> {
     const { rows } = await this.pool.query(
       `INSERT INTO candidat (cv, lettre_motivation, niveau_etude, experience, diplome, nom, prenom, email, mot_de_passe, telephone)

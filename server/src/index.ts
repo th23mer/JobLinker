@@ -60,14 +60,14 @@ const recruteurRepo = new RecruteurRepository(pool);
 const offreRepo = new OffreEmploiRepository(pool);
 const candidatRepo = new CandidatRepository(pool);
 const candidatureRepo = new CandidatureRepository(pool);
+const mailer = new Mailer();
 
-const authService = new AuthService(adminRepo, recruteurRepo, candidatRepo);
+const authService = new AuthService(adminRepo, recruteurRepo, candidatRepo, mailer);
 const categorieService = new CategorieService(categorieRepo);
 const specialiteService = new SpecialiteService(specialiteRepo, categorieRepo);
 const recruteurService = new RecruteurService(recruteurRepo);
 const offreService = new OffreEmploiService(offreRepo, recruteurRepo);
 const candidatService = new CandidatService(candidatRepo);
-const mailer = new Mailer();
 const candidatureService = new CandidatureService(candidatureRepo, candidatRepo, offreRepo, mailer);
 
 const authController = new AuthController(authService);

@@ -12,6 +12,8 @@ export interface IAuthService {
   loginAdmin(email: string, motDePasse: string): Promise<{ token: string }>;
   loginRecruteur(email: string, motDePasse: string): Promise<{ token: string }>;
   loginCandidat(email: string, motDePasse: string): Promise<{ token: string }>;
+  forgotPassword(email: string, role?: "admin" | "recruteur" | "candidat"): Promise<void>;
+  resetPassword(token: string, newPassword: string): Promise<void>;
 }
 
 export interface ICategorieService {

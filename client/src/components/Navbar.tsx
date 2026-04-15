@@ -38,7 +38,7 @@ export default function Navbar() {
     <nav
       aria-label="Navigation principale"
       className={cn(
-        "fixed top-0 left-0 right-0 z-50 transition-all duration-500",
+        "sticky top-0 z-50 transition-all duration-500",
         scrolled
           ? "glass-strong shadow-lg shadow-black/[0.03] border-b border-border/40"
           : "bg-transparent"

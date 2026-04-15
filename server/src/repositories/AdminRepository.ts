@@ -20,4 +20,12 @@ export class AdminRepository implements IAdminRepository {
     );
     return rows[0] || null;
   }
+
+  async updatePassword(id: number, hashedPassword: string): Promise<boolean> {
+    const result = await this.pool.query(
+      "UPDATE administrateur SET mot_de_passe = $1 WHERE id = $2",
+      [hashedPassword, id]
+    );
+    return (result.rowCount || 0) > 0;
+  }
 }

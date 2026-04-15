@@ -33,6 +33,14 @@ export class RecruteurRepository implements IRecruteurRepository {
     return rows[0] || null;
   }
 
+  async updatePassword(id: number, hashedPassword: string): Promise<boolean> {
+    const result = await this.pool.query(
+      "UPDATE recruteur SET mot_de_passe = $1 WHERE id = $2",
+      [hashedPassword, id]
+    );
+    return (result.rowCount || 0) > 0;
+  }
+
   async create(data: Omit<Recruteur, "id" | "statutValidation">): Promise<Recruteur> {
     const { rows } = await this.pool.query(
       `INSERT INTO recruteur (nom_entreprise, matricule_fiscal, adresse, description, email, mot_de_passe, telephone, nom_representant, prenom_representant, statut_validation)

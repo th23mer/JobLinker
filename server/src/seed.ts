@@ -1,5 +1,7 @@
 import { pool } from "./db";
 import bcrypt from "bcrypt";
+import fs from "fs";
+import path from "path";
 
 const SALT_ROUNDS = 10;
 
@@ -7,6 +9,16 @@ async function seed() {
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
+
+    // Create tables from schema.sql
+    const schemaPath = path.join(__dirname, "schema.sql");
+    const schema = fs.readFileSync(schemaPath, "utf-8");
+    const statements = schema.split(";").filter((stmt) => stmt.trim());
+    for (const stmt of statements) {
+      if (stmt.trim()) {
+        await client.query(stmt);
+      }
+    }
 
     // Clear tables in reverse dependency order
     await client.query("DELETE FROM candidature");
