@@ -289,6 +289,23 @@
   50% { opacity: 0.7; }
 }
 
+@keyframes offer-marquee {
+  from { transform: translateY(0); }
+  to { transform: translateY(-50%); }
+}
+
+@keyframes celebrate-pop {
+  0% { transform: scale(0.65); opacity: 0; }
+  35% { transform: scale(1.08); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes celebrate-burst {
+  0% { transform: translate(0, 0) scale(0.8); opacity: 0; }
+  25% { opacity: 1; }
+  100% { transform: translate(var(--tx), var(--ty)) scale(1); opacity: 0; }
+}
+
 .animate-fade-in-up {
   animation: fade-in-up 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
@@ -320,6 +337,56 @@
   animation: pulse-soft 3s ease-in-out infinite;
 }
 
+.offer-marquee-track {
+  animation: offer-marquee 18s linear infinite;
+  will-change: transform;
+}
+
+.offer-marquee-track:hover,
+.offer-marquee-track:focus-within {
+  animation-play-state: paused;
+}
+
+.celebrate-wrap {
+  position: relative;
+  height: 56px;
+  display: grid;
+  place-items: center;
+  border-radius: 0.9rem;
+  border: 1px solid oklch(0.527 0.154 150.069 / 0.3);
+  background: oklch(0.99 0 0);
+  overflow: hidden;
+}
+
+.celebrate-check {
+  color: oklch(0.527 0.154 150.069);
+  animation: celebrate-pop 420ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.celebrate-particle {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  opacity: 0;
+  animation: celebrate-burst 900ms ease-out forwards;
+}
+
+.celebrate-particle-1 { --tx: -58px; --ty: -30px; background: var(--primary); }
+.celebrate-particle-2 { --tx: -40px; --ty: 30px; background: var(--primary-light); animation-delay: 40ms; }
+.celebrate-particle-3 { --tx: 54px; --ty: -26px; background: var(--success); animation-delay: 80ms; }
+.celebrate-particle-4 { --tx: 38px; --ty: 30px; background: var(--warning); animation-delay: 20ms; }
+.celebrate-particle-5 { --tx: 0px; --ty: -40px; background: var(--primary-dark); animation-delay: 60ms; }
+.celebrate-particle-6 { --tx: 0px; --ty: 38px; background: var(--success); animation-delay: 100ms; }
+
+@media (max-width: 640px) {
+  .landing-filter-chip {
+    min-height: 44px;
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-fade-in-up,
   .animate-fade-in-up-delay-1,
@@ -328,8 +395,15 @@
   .animate-float,
   .animate-scale-in,
   .animate-pulse-soft,
+  .offer-marquee-track,
   .gradient-mesh,
   .shimmer {
+    animation: none !important;
+    opacity: 1;
+  }
+
+  .celebrate-check,
+  .celebrate-particle {
     animation: none !important;
     opacity: 1;
   }

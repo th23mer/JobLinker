@@ -20,11 +20,10 @@ export default function FloatingActions() {
     <div className="fixed bottom-5 right-5 z-[60] flex flex-col items-end gap-2">
       <Link
         to="/fqas"
-        className="inline-flex h-12 items-center gap-2 rounded-full bg-primary px-4 text-sm font-semibold text-white shadow-lg shadow-primary/35 transition-transform duration-200 hover:scale-[1.03]"
+        className="inline-flex size-12 items-center justify-center rounded-full bg-primary text-white shadow-lg shadow-primary/35 transition-transform duration-200 hover:scale-[1.03]"
         aria-label="Ouvrir la page FAQ"
       >
         <HelpCircle className="size-4" aria-hidden="true" />
-        Aide
       </Link>
 
       <button

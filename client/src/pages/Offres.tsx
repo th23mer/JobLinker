@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { api } from "@/services/api";
 import type { OffreEmploi, Categorie } from "@/types";
 import { Search, MapPin, Briefcase, GraduationCap, SlidersHorizontal, X, ArrowRight } from "lucide-react";
@@ -11,11 +11,15 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Offres() {
+  const [searchParams] = useSearchParams();
   const [offres, setOffres] = useState<OffreEmploi[]>([]);
   const [categories, setCategories] = useState<Categorie[]>([]);
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(searchParams.get("search") || searchParams.get("titre") || "");
   const [filters, setFilters] = useState({
-    categorieId: "", typeContrat: "", ville: "", niveauEtude: "",
+    categorieId: searchParams.get("categorieId") || "",
+    typeContrat: searchParams.get("typeContrat") || "",
+    ville: searchParams.get("ville") || "",
+    niveauEtude: searchParams.get("niveauEtude") || "",
   });
   const [showFilters, setShowFilters] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -30,6 +34,16 @@ export default function Offres() {
       setLoading(false);
     }).catch(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    const hasSearch = !!(searchParams.get("search") || searchParams.get("titre"));
+    const hasFilters = !!(searchParams.get("categorieId") || searchParams.get("typeContrat") || searchParams.get("ville") || searchParams.get("niveauEtude"));
+
+    if (hasSearch || hasFilters) {
+      handleSearch();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   const handleSearch = async () => {
     setLoading(true);

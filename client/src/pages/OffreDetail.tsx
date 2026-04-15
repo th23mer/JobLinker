@@ -27,6 +27,7 @@ export default function OffreDetail() {
   const [success, setSuccess] = useState("");
   const [error, setError] = useState("");
   const [profil, setProfil] = useState<Candidat | null>(null);
+  const [showCelebrate, setShowCelebrate] = useState(false);
 
   useEffect(() => {
     api.get<OffreEmploi>(`/offres/${id}`)
@@ -68,6 +69,8 @@ export default function OffreDetail() {
       }
       await api.upload("/candidatures", fd);
       setSuccess("Candidature envoyée avec succès !");
+      setShowCelebrate(true);
+      window.setTimeout(() => setShowCelebrate(false), 1800);
       setShowPostuler(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erreur");
@@ -162,10 +165,24 @@ export default function OffreDetail() {
             )}
 
             {success && (
-              <Alert variant="success">
-                <CheckCircle className="size-4" aria-hidden="true" />
-                <AlertDescription>{success}</AlertDescription>
-              </Alert>
+              <div className="space-y-3">
+                <Alert variant="success">
+                  <CheckCircle className="size-4" aria-hidden="true" />
+                  <AlertDescription>{success}</AlertDescription>
+                </Alert>
+
+                {showCelebrate && (
+                  <div className="celebrate-wrap" role="status" aria-live="polite" aria-label="Candidature confirmée">
+                    <CheckCircle className="celebrate-check" aria-hidden="true" />
+                    <span className="celebrate-particle celebrate-particle-1" aria-hidden="true" />
+                    <span className="celebrate-particle celebrate-particle-2" aria-hidden="true" />
+                    <span className="celebrate-particle celebrate-particle-3" aria-hidden="true" />
+                    <span className="celebrate-particle celebrate-particle-4" aria-hidden="true" />
+                    <span className="celebrate-particle celebrate-particle-5" aria-hidden="true" />
+                    <span className="celebrate-particle celebrate-particle-6" aria-hidden="true" />
+                  </div>
+                )}
+              </div>
             )}
             {error && (
               <Alert variant="destructive">

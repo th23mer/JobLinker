@@ -37,11 +37,12 @@ export default function Navbar() {
   return (
     <nav
       aria-label="Navigation principale"
+      style={{ position: "sticky", top: 0 }}
       className={cn(
-        "sticky top-0 z-50 transition-all duration-500",
+        "sticky top-0 z-50 transition-all duration-500 border-b border-border/50 backdrop-blur-xl",
         scrolled
-          ? "glass-strong shadow-lg shadow-black/[0.03] border-b border-border/40"
-          : "bg-transparent"
+          ? "bg-background/92 shadow-lg shadow-black/[0.04]"
+          : "bg-background/80 shadow-sm shadow-black/[0.02]"
       )}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -49,7 +50,7 @@ export default function Navbar() {
           {/* Logo */}
           <Link to="/" className="flex items-center gap-3 group" aria-label="JobLinker - Accueil">
             <div className="relative size-10 rounded-2xl bg-gradient-to-br from-primary via-primary-light to-primary-dark flex items-center justify-center shadow-lg shadow-primary/25 group-hover:shadow-xl group-hover:shadow-primary/30 transition-all duration-300 group-hover:scale-105">
-              <Link2 className="size-4 text-white" />
+              <Link2 className="size-4 text-white" aria-hidden="true" />
               <div className="absolute -top-0.5 -right-0.5 size-3 rounded-full bg-primary-light border-2 border-background animate-pulse-soft" />
             </div>
             <div className="flex flex-col">
@@ -106,7 +107,7 @@ export default function Navbar() {
                 </Button>
                 <Button size="sm" asChild>
                   <Link to="/register">
-                    <Sparkles className="size-3.5" />
+                    <Sparkles className="size-3.5" aria-hidden="true" />
                     S'inscrire
                   </Link>
                 </Button>
@@ -125,7 +126,7 @@ export default function Navbar() {
               <SheetHeader>
                 <SheetTitle className="flex items-center gap-2">
                   <div className="size-8 rounded-xl bg-gradient-to-br from-primary to-primary-dark flex items-center justify-center">
-                    <Link2 className="size-4 text-white" />
+                    <Link2 className="size-4 text-white" aria-hidden="true" />
                   </div>
                   JobLinker
                 </SheetTitle>
@@ -174,7 +175,7 @@ export default function Navbar() {
                     <div className="mt-4">
                       <Button className="w-full" size="lg" asChild>
                         <Link to="/register" onClick={() => setMobileOpen(false)}>
-                          <Sparkles className="size-4" />
+                          <Sparkles className="size-4" aria-hidden="true" />
                           S'inscrire
                         </Link>
                       </Button>
