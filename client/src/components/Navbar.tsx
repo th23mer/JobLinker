@@ -1,5 +1,6 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
+import { useLanguage } from "@/context/LanguageContext";
 import { Link2, LogOut, LayoutDashboard, Menu, Sparkles } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
@@ -11,6 +12,7 @@ import { cn } from "@/lib/utils";
 
 export default function Navbar() {
   const { user, logout, isAuthenticated } = useAuth();
+  const { language, setLanguage } = useLanguage();
   const navigate = useNavigate();
   const location = useLocation();
   const [scrolled, setScrolled] = useState(false);
@@ -63,6 +65,32 @@ export default function Navbar() {
 
           {/* Desktop nav */}
           <div className="hidden md:flex items-center gap-1">
+            {/* Language Selector */}
+            <div className="inline-flex items-center gap-1 rounded-full border border-border/70 bg-background/85 p-1 text-xs font-semibold shadow-sm backdrop-blur mr-2">
+              <button
+                type="button"
+                onClick={() => setLanguage("fr")}
+                className={`rounded-full px-2.5 py-1 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 ${
+                  language === "fr" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                }`}
+                aria-pressed={language === "fr"}
+                aria-label="Basculer la langue en français"
+              >
+                FR
+              </button>
+              <button
+                type="button"
+                onClick={() => setLanguage("en")}
+                className={`rounded-full px-2.5 py-1 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 ${
+                  language === "en" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                }`}
+                aria-pressed={language === "en"}
+                aria-label="Switch language to English"
+              >
+                EN
+              </button>
+            </div>
+
             <Button
               variant="ghost"
               size="sm"
@@ -133,6 +161,32 @@ export default function Navbar() {
                 <SheetDescription>Menu de navigation</SheetDescription>
               </SheetHeader>
               <nav aria-label="Menu mobile" className="flex flex-col gap-1 mt-8">
+                {/* Language Selector Mobile */}
+                <div className="mb-4 inline-flex items-center gap-1 rounded-full border border-border/70 bg-background/85 p-1 text-xs font-semibold">
+                  <button
+                    type="button"
+                    onClick={() => setLanguage("fr")}
+                    className={`rounded-full px-3 py-1.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 ${
+                      language === "fr" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                    }`}
+                    aria-pressed={language === "fr"}
+                    aria-label="Basculer la langue en français"
+                  >
+                    FR
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setLanguage("en")}
+                    className={`rounded-full px-3 py-1.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 ${
+                      language === "en" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                    }`}
+                    aria-pressed={language === "en"}
+                    aria-label="Switch language to English"
+                  >
+                    EN
+                  </button>
+                </div>
+
                 <Button
                   variant="ghost"
                   className={cn("justify-start h-12 text-base", isActive("/offres") && "bg-accent")}

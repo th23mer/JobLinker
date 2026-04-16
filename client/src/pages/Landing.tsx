@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useLanguage } from "@/context/LanguageContext";
 import {
   Search,
   Building2,
@@ -465,9 +466,9 @@ function FAQAccordionItem({
 export default function Landing() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { language } = useLanguage();
   const heroRef = useRef<HTMLElement | null>(null);
   const searchPreviewRef = useRef<HTMLDivElement | null>(null);
-  const [language, setLanguage] = useState<Language>("fr");
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState("");
   const [recommendedOffers, setRecommendedOffers] = useState<OffreEmploi[]>([]);
@@ -500,8 +501,6 @@ export default function Landing() {
       setAudience(detectAudience(searchParams, document.referrer || ""));
       setAudienceSelected(false);
     }
-
-    setLanguage(detectLanguage(window.location.search));
   }, [location.search]);
 
   useEffect(() => {
@@ -513,14 +512,6 @@ export default function Landing() {
       window.localStorage.setItem("joblinker-audience", audience);
     }
   }, [audience, audienceSelected]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-
-    window.localStorage.setItem("joblinker-language", language);
-  }, [language]);
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -763,35 +754,11 @@ export default function Landing() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-16 w-full">
           <div className="grid lg:grid-cols-[1.08fr_0.92fr] gap-10 items-center">
             <div className="relative z-20">
-              <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+              <div className="mb-5">
                 <Badge variant="secondary" className="px-4 py-2 text-sm font-medium border-primary/20 text-primary bg-primary/5">
                   <Sparkles className="size-3.5 mr-2" aria-hidden="true" />
                   {uiText.trustBadge}
                 </Badge>
-                <div className="inline-flex items-center gap-1 rounded-full border border-border/70 bg-background/85 p-1 text-xs font-semibold shadow-sm backdrop-blur">
-                  <button
-                    type="button"
-                    onClick={() => setLanguage("fr")}
-                    className={`rounded-full px-3 py-1 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 ${
-                      language === "fr" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
-                    }`}
-                    aria-pressed={language === "fr"}
-                    aria-label="Basculer la langue en français"
-                  >
-                    FR
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setLanguage("en")}
-                    className={`rounded-full px-3 py-1 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 ${
-                      language === "en" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
-                    }`}
-                    aria-pressed={language === "en"}
-                    aria-label="Switch language to English"
-                  >
-                    EN
-                  </button>
-                </div>
               </div>
 
               <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-border/70 bg-background/85 px-4 py-2 text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground shadow-sm backdrop-blur">
