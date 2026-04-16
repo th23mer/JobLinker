@@ -1,6 +1,7 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
-import { Link2, LogOut, LayoutDashboard, Menu, Sparkles } from "lucide-react";
+import { useLanguage } from "@/context/LanguageContext";
+import { Link2, LogOut, LayoutDashboard, Menu, Sparkles, Globe } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -11,6 +12,7 @@ import { cn } from "@/lib/utils";
 
 export default function Navbar() {
   const { user, logout, isAuthenticated } = useAuth();
+  const { language, setLanguage, t } = useLanguage();
   const navigate = useNavigate();
   const location = useLocation();
   const [scrolled, setScrolled] = useState(false);
@@ -25,6 +27,10 @@ export default function Navbar() {
   const handleLogout = () => {
     logout();
     navigate("/");
+  };
+
+  const toggleLanguage = () => {
+    setLanguage(language === "fr" ? "en" : "fr");
   };
 
   const dashboardPath =
@@ -57,7 +63,7 @@ export default function Navbar() {
               <span className="font-heading text-lg font-bold tracking-tight text-foreground leading-none">
                 JobLinker
               </span>
-              <span className="text-[10px] font-medium text-muted-foreground/70 tracking-wider uppercase">Plateforme de recrutement</span>
+              <span className="text-[10px] font-medium text-muted-foreground/70 tracking-wider uppercase">{t("nav.subtitle")}</span>
             </div>
           </Link>
 
@@ -70,9 +76,23 @@ export default function Navbar() {
               className={cn(isActive("/offres") && "bg-accent text-accent-foreground")}
             >
               <Link to="/offres" aria-current={isActive("/offres") ? "page" : undefined}>
-                Offres d'emploi
+                {t("nav.offers")}
               </Link>
             </Button>
+
+            {/* Language toggle */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={toggleLanguage}
+              className="text-muted-foreground gap-1.5"
+              aria-label={language === "fr" ? "Switch to English" : "Basculer en francais"}
+            >
+              <Globe className="size-4" />
+              <span className="text-xs font-semibold uppercase">{language === "fr" ? "FR" : "EN"}</span>
+            </Button>
+
+            <Separator orientation="vertical" className="h-6 mx-1" />
 
             {isAuthenticated ? (
               <>
@@ -84,13 +104,12 @@ export default function Navbar() {
                 >
                   <Link to={dashboardPath} aria-current={isActive(dashboardPath) ? "page" : undefined}>
                     <LayoutDashboard className="size-4" />
-                    Dashboard
+                    {t("nav.dashboard")}
                   </Link>
                 </Button>
-                <Separator orientation="vertical" className="h-6 mx-2" />
-                <Button variant="ghost" size="sm" onClick={handleLogout} className="text-muted-foreground hover:text-destructive" aria-label="Se deconnecter">
+                <Button variant="ghost" size="sm" onClick={handleLogout} className="text-muted-foreground hover:text-destructive" aria-label={t("nav.logout")}>
                   <LogOut className="size-4" />
-                  <span className="hidden lg:inline">Deconnexion</span>
+                  <span className="hidden lg:inline">{t("nav.logout")}</span>
                 </Button>
               </>
             ) : (
@@ -102,13 +121,13 @@ export default function Navbar() {
                   className={cn(isActive("/login") && "bg-accent text-accent-foreground")}
                 >
                   <Link to="/login" aria-current={isActive("/login") ? "page" : undefined}>
-                    Connexion
+                    {t("nav.login")}
                   </Link>
                 </Button>
                 <Button size="sm" asChild>
                   <Link to="/register">
                     <Sparkles className="size-3.5" aria-hidden="true" />
-                    S'inscrire
+                    {t("nav.register")}
                   </Link>
                 </Button>
               </>
@@ -130,7 +149,7 @@ export default function Navbar() {
                   </div>
                   JobLinker
                 </SheetTitle>
-                <SheetDescription>Menu de navigation</SheetDescription>
+                <SheetDescription>{t("nav.subtitle")}</SheetDescription>
               </SheetHeader>
               <nav aria-label="Menu mobile" className="flex flex-col gap-1 mt-8">
                 <Button
@@ -139,9 +158,20 @@ export default function Navbar() {
                   asChild
                 >
                   <Link to="/offres" onClick={() => setMobileOpen(false)} aria-current={isActive("/offres") ? "page" : undefined}>
-                    Offres d'emploi
+                    {t("nav.offers")}
                   </Link>
                 </Button>
+
+                {/* Language toggle mobile */}
+                <Button
+                  variant="ghost"
+                  className="justify-start h-12 text-base"
+                  onClick={() => { toggleLanguage(); setMobileOpen(false); }}
+                >
+                  <Globe className="size-4" />
+                  {language === "fr" ? "English" : "Francais"}
+                </Button>
+
                 {isAuthenticated ? (
                   <>
                     <Button
@@ -151,7 +181,7 @@ export default function Navbar() {
                     >
                       <Link to={dashboardPath} onClick={() => setMobileOpen(false)} aria-current={isActive(dashboardPath) ? "page" : undefined}>
                         <LayoutDashboard className="size-4" />
-                        Dashboard
+                        {t("nav.dashboard")}
                       </Link>
                     </Button>
                     <Separator className="my-3" />
@@ -159,24 +189,24 @@ export default function Navbar() {
                       variant="ghost"
                       className="justify-start h-12 text-base text-destructive hover:text-destructive"
                       onClick={() => { handleLogout(); setMobileOpen(false); }}
-                      aria-label="Se deconnecter"
+                      aria-label={t("nav.logout")}
                     >
                       <LogOut className="size-4" />
-                      Deconnexion
+                      {t("nav.logout")}
                     </Button>
                   </>
                 ) : (
                   <>
                     <Button variant="ghost" className="justify-start h-12 text-base" asChild>
                       <Link to="/login" onClick={() => setMobileOpen(false)}>
-                        Connexion
+                        {t("nav.login")}
                       </Link>
                     </Button>
                     <div className="mt-4">
                       <Button className="w-full" size="lg" asChild>
                         <Link to="/register" onClick={() => setMobileOpen(false)}>
                           <Sparkles className="size-4" aria-hidden="true" />
-                          S'inscrire
+                          {t("nav.register")}
                         </Link>
                       </Button>
                     </div>

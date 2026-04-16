@@ -1,6 +1,9 @@
 import { Link } from "react-router-dom";
+import { useLanguage } from "@/context/LanguageContext";
 
 export default function Footer() {
+  const { t } = useLanguage();
+
   return (
     <footer className="relative bg-gradient-to-b from-foreground via-foreground to-foreground/95 text-background mt-auto overflow-hidden">
       {/* Decorative gradient orbs */}
@@ -17,11 +20,11 @@ export default function Footer() {
               </div>
               <div className="flex flex-col leading-tight">
                 <span className="font-heading text-xl font-bold">JobLinker</span>
-                <span className="text-[11px] uppercase tracking-[0.2em] text-background/45">Plateforme de recrutement</span>
+                <span className="text-[11px] uppercase tracking-[0.2em] text-background/45">{t("nav.subtitle")}</span>
               </div>
             </div>
             <p className="text-background/50 text-sm leading-relaxed max-w-md">
-              La plateforme de recrutement qui connecte les talents aux meilleures opportunites professionnelles en Tunisie.
+              {t("footer.description")}
             </p>
 
             <div className="mt-6 flex items-center gap-4 text-sm text-background/60">
@@ -40,14 +43,14 @@ export default function Footer() {
           {/* Navigation */}
           <div className="md:col-span-3">
             <h4 className="font-heading font-semibold text-xs uppercase tracking-[0.2em] text-background/40 mb-5">
-              Navigation
+              {t("footer.navigation")}
             </h4>
             <ul className="space-y-3.5">
               {[
-                { to: "/", label: "Accueil" },
-                { to: "/offres", label: "Offres d'emploi" },
-                { to: "/register?role=candidat", label: "Espace candidat" },
-                { to: "/register?role=recruteur", label: "Espace recruteur" },
+                { to: "/", label: t("footer.home") },
+                { to: "/offres", label: t("footer.offers") },
+                { to: "/register?role=candidat", label: t("footer.candidateSpace") },
+                { to: "/register?role=recruteur", label: t("footer.recruiterSpace") },
               ].map((item) => (
                 <li key={item.to}>
                   <Link
@@ -64,14 +67,14 @@ export default function Footer() {
           {/* Help */}
           <div className="md:col-span-4">
             <h4 className="font-heading font-semibold text-xs uppercase tracking-[0.2em] text-background/40 mb-5">
-              Aide
+              {t("footer.help")}
             </h4>
             <ul className="space-y-3.5 text-sm">
               {[
-                { href: "mailto:contact@joblinker.tn", label: "Aide & Support" },
-                { href: "/fqas", label: "FAQ", internal: true },
-                { href: "/conditions-utilisation", label: "Conditions d'utilisation", internal: true },
-                { href: "/politique-confidentialite", label: "Confidentialite", internal: true },
+                { href: "mailto:contact@joblinker.tn", label: t("footer.support") },
+                { href: "/fqas", label: t("footer.faq"), internal: true },
+                { href: "/conditions-utilisation", label: t("footer.terms"), internal: true },
+                { href: "/politique-confidentialite", label: t("footer.privacy"), internal: true },
               ].map((item) => (
                 <li key={item.label}>
                   {item.internal ? (
@@ -91,7 +94,7 @@ export default function Footer() {
 
         <div className="border-t border-background/[0.06] pt-8 flex flex-col sm:flex-row justify-between items-center gap-4 text-center sm:text-left">
           <p className="text-xs text-background/30">
-            &copy; {new Date().getFullYear()} JobLinker. Tous droits reserves.
+            &copy; {new Date().getFullYear()} JobLinker. {t("footer.rights")}
           </p>
           <p className="text-xs text-background/30">Tunis, Tunisie · contact@joblinker.tn</p>
         </div>

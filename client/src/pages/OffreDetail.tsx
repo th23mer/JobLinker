@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { api } from "@/services/api";
 import { useAuth } from "@/context/AuthContext";
+import { useLanguage } from "@/context/LanguageContext";
 import type { OffreEmploi, Candidat } from "@/types";
 import { ArrowLeft, MapPin, Briefcase, GraduationCap, Clock, Send, CheckCircle, Sparkles, File, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 export default function OffreDetail() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const [offre, setOffre] = useState<OffreEmploi | null>(null);
   const [loading, setLoading] = useState(true);
@@ -48,11 +50,11 @@ export default function OffreDetail() {
   const handlePostuler = async (e: React.FormEvent) => {
     e.preventDefault();
     if (cvMode === "new" && !cvFile) {
-      setError("Veuillez sélectionner un fichier PDF.");
+      setError(t("detail.errorNoCv"));
       return;
     }
     if (cvMode === "default" && !profil?.cv) {
-      setError("Aucun CV par défaut. Veuillez en téléverser un.");
+      setError(t("detail.errorNoDefaultCv"));
       return;
     }
     setSubmitting(true);
@@ -68,7 +70,7 @@ export default function OffreDetail() {
         fd.append("cv", profil!.cv);
       }
       await api.upload("/candidatures", fd);
-      setSuccess("Candidature envoyée avec succès !");
+      setSuccess(t("detail.success"));
       setShowCelebrate(true);
       window.setTimeout(() => setShowCelebrate(false), 1800);
       setShowPostuler(false);
@@ -120,11 +122,10 @@ export default function OffreDetail() {
           className="mb-8 group"
         >
           <ArrowLeft className="size-4 group-hover:-translate-x-1 transition-transform" aria-hidden="true" />
-          Retour aux offres
+          {t("detail.back")}
         </Button>
 
         <Card className="overflow-hidden">
-          {/* Gradient accent bar */}
           <div className="h-1.5 bg-gradient-to-r from-primary via-primary-light to-primary-dark" aria-hidden="true" />
 
           <CardHeader className="pb-4 pt-8">
@@ -148,7 +149,7 @@ export default function OffreDetail() {
               <section>
                 <h2 className="font-heading text-lg font-bold mb-4 flex items-center gap-2">
                   <div className="size-1.5 rounded-full bg-primary" aria-hidden="true" />
-                  Description du poste
+                  {t("detail.description")}
                 </h2>
                 <p className="text-muted-foreground leading-relaxed whitespace-pre-line pl-4">{offre.description}</p>
               </section>
@@ -158,7 +159,7 @@ export default function OffreDetail() {
               <section>
                 <h2 className="font-heading text-lg font-bold mb-4 flex items-center gap-2">
                   <div className="size-1.5 rounded-full bg-primary-light" aria-hidden="true" />
-                  Exigences
+                  {t("detail.requirements")}
                 </h2>
                 <p className="text-muted-foreground leading-relaxed whitespace-pre-line pl-4">{offre.exigences}</p>
               </section>
@@ -172,7 +173,7 @@ export default function OffreDetail() {
                 </Alert>
 
                 {showCelebrate && (
-                  <div className="celebrate-wrap" role="status" aria-live="polite" aria-label="Candidature confirmée">
+                  <div className="celebrate-wrap" role="status" aria-live="polite" aria-label="Candidature confirmee">
                     <CheckCircle className="celebrate-check" aria-hidden="true" />
                     <span className="celebrate-particle celebrate-particle-1" aria-hidden="true" />
                     <span className="celebrate-particle celebrate-particle-2" aria-hidden="true" />
@@ -186,7 +187,7 @@ export default function OffreDetail() {
             )}
             {error && (
               <Alert variant="destructive">
-                <AlertDescription>Une erreur est survenue lors de l'envoi de votre candidature. Veuillez verifier vos informations et reessayer. Detail : {error}</AlertDescription>
+                <AlertDescription>{t("detail.errorGeneric")} {error}</AlertDescription>
               </Alert>
             )}
 
@@ -195,18 +196,17 @@ export default function OffreDetail() {
                 {!showPostuler ? (
                   <Button size="lg" variant="success" className="w-full h-14 text-base" onClick={() => setShowPostuler(true)}>
                     <Send className="size-5" aria-hidden="true" />
-                    Postuler maintenant
+                    {t("detail.apply")}
                     <Sparkles className="size-4" aria-hidden="true" />
                   </Button>
                 ) : (
                   <>
                     <Separator />
                     <form onSubmit={handlePostuler} className="space-y-6 animate-scale-in">
-                      <h2 className="font-heading text-lg font-bold">Votre candidature</h2>
+                      <h2 className="font-heading text-lg font-bold">{t("detail.yourApplication")}</h2>
 
-                      {/* CV Choice */}
                       <div className="space-y-3">
-                        <Label>CV (PDF) <span aria-hidden="true">*</span></Label>
+                        <Label>{t("detail.cv")} <span aria-hidden="true">*</span></Label>
 
                         {profil?.cv && (
                           <label className={`flex items-center gap-3 p-4 rounded-xl border cursor-pointer transition-colors ${cvMode === "default" ? "border-primary bg-primary/5" : "border-border hover:border-muted-foreground/30"}`}>
@@ -221,7 +221,7 @@ export default function OffreDetail() {
                               <File className="size-4 text-primary" aria-hidden="true" />
                             </div>
                             <div>
-                              <p className="text-sm font-semibold">Utiliser mon CV par défaut</p>
+                              <p className="text-sm font-semibold">{t("detail.defaultCv")}</p>
                               <a
                                 href={profil.cv}
                                 target="_blank"
@@ -229,7 +229,7 @@ export default function OffreDetail() {
                                 className="text-xs text-primary hover:underline"
                                 onClick={(e) => e.stopPropagation()}
                               >
-                                Voir le CV
+                                {t("detail.viewCv")}
                               </a>
                             </div>
                           </label>
@@ -246,7 +246,7 @@ export default function OffreDetail() {
                           <div className="size-9 rounded-lg bg-muted flex items-center justify-center shrink-0">
                             <Upload className="size-4 text-muted-foreground" aria-hidden="true" />
                           </div>
-                          <p className="text-sm font-semibold">Téléverser un nouveau CV</p>
+                          <p className="text-sm font-semibold">{t("detail.newCv")}</p>
                         </label>
 
                         {cvMode === "new" && (
@@ -265,7 +265,7 @@ export default function OffreDetail() {
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="lm">Lettre de motivation <span aria-hidden="true">*</span></Label>
+                        <Label htmlFor="lm">{t("detail.coverLetter")} <span aria-hidden="true">*</span></Label>
                         <Textarea
                           id="lm"
                           required
@@ -273,16 +273,16 @@ export default function OffreDetail() {
                           rows={5}
                           value={lettreMotivation}
                           onChange={(e) => setLettreMotivation(e.target.value)}
-                          placeholder="Expliquez pourquoi vous êtes le candidat idéal..."
+                          placeholder={t("detail.coverLetterPlaceholder")}
                           autoComplete="on"
                         />
                       </div>
                       <div className="flex gap-4">
                         <Button type="button" variant="outline" className="flex-1" onClick={() => setShowPostuler(false)}>
-                          Annuler
+                          {t("detail.cancel")}
                         </Button>
                         <Button type="submit" variant="success" disabled={submitting} className="flex-1">
-                          {submitting ? "Envoi en cours..." : "Envoyer ma candidature"}
+                          {submitting ? t("detail.sending") : t("detail.send")}
                         </Button>
                       </div>
                     </form>
@@ -294,7 +294,7 @@ export default function OffreDetail() {
             {!user && (
               <Card className="bg-muted/30 border-dashed text-center py-6">
                 <p className="text-muted-foreground text-sm">
-                  <Link to="/login" className="text-primary hover:underline font-semibold">Connectez-vous</Link> en tant que candidat pour postuler a cette offre.
+                  <Link to="/login" className="text-primary hover:underline font-semibold">{t("detail.loginLink")}</Link> {t("detail.loginPrompt")}
                 </p>
               </Card>
             )}

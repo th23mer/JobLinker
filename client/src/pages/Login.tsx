@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
+import { useLanguage } from "@/context/LanguageContext";
 import { api } from "@/services/api";
 import { Link2, Mail, Lock, ArrowRight, Sparkles, Eye, EyeOff } from "lucide-react";
 import type { AuthPayload } from "@/types";
@@ -24,6 +25,7 @@ export default function Login() {
   const [forgotLoading, setForgotLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const { login, user, isAuthenticated } = useAuth();
+  const { t } = useLanguage();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -46,7 +48,7 @@ export default function Login() {
       setEmailError("");
       return;
     }
-    setEmailError("Format invalide - ex: nom@domaine.com");
+    setEmailError(t("login.emailInvalid"));
   };
 
   const handleForgotPassword = async () => {
@@ -55,7 +57,7 @@ export default function Login() {
 
     if (!isEmailValid(email)) {
       setEmailTouched(true);
-      setEmailError("Format invalide - ex: nom@domaine.com");
+      setEmailError(t("login.emailInvalid"));
       return;
     }
 
@@ -64,7 +66,7 @@ export default function Login() {
       const { message } = await api.post<{ message: string }>("/auth/forgot-password", { email, role });
       setResetMessage(message);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Impossible d'envoyer l'email de réinitialisation.");
+      setError(err instanceof Error ? err.message : t("login.resetError"));
     } finally {
       setForgotLoading(false);
     }
@@ -76,7 +78,7 @@ export default function Login() {
 
     if (!isEmailValid(email)) {
       setEmailTouched(true);
-      setEmailError("Format invalide - ex: nom@domaine.com");
+      setEmailError(t("login.emailInvalid"));
       return;
     }
 
@@ -86,7 +88,7 @@ export default function Login() {
       login(token, role as AuthPayload["role"]);
       navigate(role === "recruteur" ? "/recruteur" : "/candidat");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erreur de connexion. Verifiez vos identifiants et reessayez.");
+      setError(err instanceof Error ? err.message : t("login.errorDefault"));
     } finally {
       setLoading(false);
     }
@@ -109,10 +111,10 @@ export default function Login() {
             <span className="font-heading text-2xl font-bold text-white">JobLinker</span>
           </div>
           <h2 className="font-heading text-4xl lg:text-[2.75rem] font-extrabold text-white mb-6 leading-tight">
-            Accédez à des milliers d'opportunités
+            {t("login.heroTitle")}
           </h2>
           <p className="text-white text-lg leading-relaxed max-w-md">
-            Connectez-vous pour retrouver vos candidatures, gerer vos offres ou administrer la plateforme.
+            {t("login.heroDesc")}
           </p>
 
           {/* Social proof */}
@@ -125,7 +127,7 @@ export default function Login() {
               ))}
             </div>
             <p className="text-white text-sm">
-              <span className="text-white font-semibold">+50K</span> professionnels inscrits
+              <span className="text-white font-semibold">+50K</span> {t("login.professionals")}
             </p>
           </div>
         </div>
@@ -143,15 +145,15 @@ export default function Login() {
           </div>
 
           <div className="mb-8">
-            <h1 className="font-heading text-3xl font-extrabold mb-2">Connexion</h1>
-            <p className="text-muted-foreground">Accedez a votre espace personnel</p>
+            <h1 className="font-heading text-3xl font-extrabold mb-2">{t("login.title")}</h1>
+            <p className="text-muted-foreground">{t("login.subtitle")}</p>
           </div>
 
           {/* Role tabs */}
           <Tabs value={role} onValueChange={(v) => setRole(v as Role)} className="mb-8">
             <TabsList>
-              <TabsTrigger value="candidat">Candidat</TabsTrigger>
-              <TabsTrigger value="recruteur">Recruteur</TabsTrigger>
+              <TabsTrigger value="candidat">{t("login.candidate")}</TabsTrigger>
+              <TabsTrigger value="recruteur">{t("login.recruiter")}</TabsTrigger>
             </TabsList>
           </Tabs>
 
@@ -169,7 +171,7 @@ export default function Login() {
 
           <form onSubmit={handleSubmit} className="space-y-6" noValidate>
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-sm font-semibold required">Adresse email</Label>
+              <Label htmlFor="email" className="text-sm font-semibold required">{t("login.email")}</Label>
               <div className="relative">
                 <Mail className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-muted-foreground/50" aria-hidden="true" />
                 <Input
@@ -182,11 +184,11 @@ export default function Login() {
                     const value = e.target.value;
                     setEmail(value);
                     if (emailTouched) {
-                      setEmailError(!value.trim() || isEmailValid(value) ? "" : "Format invalide - ex: nom@domaine.com");
+                      setEmailError(!value.trim() || isEmailValid(value) ? "" : t("login.emailInvalid"));
                     }
                   }}
                   onBlur={validateEmailOnBlur}
-                  placeholder="votre@email.com"
+                  placeholder={t("login.emailPlaceholder")}
                   className="pl-12 h-12"
                   autoComplete="email"
                 />
@@ -197,7 +199,7 @@ export default function Login() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-sm font-semibold required">Mot de passe</Label>
+              <Label htmlFor="password" className="text-sm font-semibold required">{t("login.password")}</Label>
               <div className="relative">
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-muted-foreground/50" aria-hidden="true" />
                 <Input
@@ -207,7 +209,7 @@ export default function Login() {
                   aria-required="true"
                   value={motDePasse}
                   onChange={(e) => setMotDePasse(e.target.value)}
-                  placeholder="Votre mot de passe"
+                  placeholder={t("login.passwordPlaceholder")}
                   className="pl-12 pr-12 h-12"
                   autoComplete="current-password"
                 />
@@ -215,7 +217,7 @@ export default function Login() {
                   type="button"
                   onClick={() => setShowPassword((current) => !current)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-muted-foreground transition-colors hover:text-foreground"
-                  aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+                  aria-label={showPassword ? t("login.hidePassword") : t("login.showPassword")}
                 >
                   {showPassword ? <EyeOff className="size-4" aria-hidden="true" /> : <Eye className="size-4" aria-hidden="true" />}
                 </button>
@@ -227,15 +229,15 @@ export default function Login() {
                   disabled={forgotLoading}
                   className="text-sm font-semibold text-primary hover:underline disabled:opacity-50"
                 >
-                  {forgotLoading ? "Envoi en cours..." : "Mot de passe oublié ?"}
+                  {forgotLoading ? t("login.forgotLoading") : t("login.forgot")}
                 </button>
               </div>
             </div>
 
             <Button type="submit" disabled={loading} className="w-full h-12" size="lg">
-              {loading ? "Connexion en cours..." : (
+              {loading ? t("login.loading") : (
                 <>
-                  Se connecter
+                  {t("login.submit")}
                   <ArrowRight className="size-4" aria-hidden="true" />
                 </>
               )}
@@ -243,18 +245,18 @@ export default function Login() {
           </form>
 
           <p className="text-center text-sm text-muted-foreground mt-auto pt-4">
-            Pas encore de compte ?{" "}
+            {t("login.noAccount")}{" "}
             <Link to="/register" className="text-primary hover:underline font-semibold inline-flex items-center gap-1">
-              S'inscrire gratuitement
+              {t("login.registerLink")}
               <Sparkles className="size-3" aria-hidden="true" />
             </Link>
           </p>
 
           <p className="mt-4 border-t border-border/60 pt-5 text-center text-xs text-muted-foreground">
-            © 2026 JobLinker{" "}
-            <Link to="/conditions-utilisation" className="hover:text-foreground hover:underline">Conditions d'utilisation</Link>
+            &copy; 2026 JobLinker{" "}
+            <Link to="/conditions-utilisation" className="hover:text-foreground hover:underline">{t("common.terms")}</Link>
             {" · "}
-            <Link to="/politique-confidentialite" className="hover:text-foreground hover:underline">Confidentialité</Link>
+            <Link to="/politique-confidentialite" className="hover:text-foreground hover:underline">{t("common.privacy")}</Link>
           </p>
         </div>
       </div>

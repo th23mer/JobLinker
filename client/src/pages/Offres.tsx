@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { api } from "@/services/api";
+import { useLanguage } from "@/context/LanguageContext";
 import type { OffreEmploi, Categorie } from "@/types";
 import { Search, MapPin, Briefcase, GraduationCap, SlidersHorizontal, X, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -12,6 +13,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Offres() {
   const [searchParams] = useSearchParams();
+  const { t } = useLanguage();
   const [offres, setOffres] = useState<OffreEmploi[]>([]);
   const [categories, setCategories] = useState<Categorie[]>([]);
   const [search, setSearch] = useState(searchParams.get("search") || searchParams.get("titre") || "");
@@ -85,18 +87,22 @@ export default function Offres() {
   const selectClass =
     "flex h-11 w-full rounded-xl border border-border/60 bg-background px-4 py-2 text-sm shadow-sm shadow-black/[0.03] transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary/50";
 
+  const countText = loading
+    ? t("offres.loading")
+    : `${offres.length} ${offres.length !== 1 ? t("offres.offerPlural") : t("offres.offer")} ${offres.length !== 1 ? t("offres.availablePlural") : t("offres.available")}`;
+
   return (
     <section className="pt-20 pb-16 min-h-screen">
       {/* Header with gradient */}
       <div className="relative bg-gradient-to-b from-muted/60 to-transparent">
         <div className="absolute inset-0 dot-pattern opacity-20" />
         <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-10">
-          <Badge variant="info" className="mb-4">Explorez</Badge>
+          <Badge variant="info" className="mb-4">{t("offres.explore")}</Badge>
           <h1 className="font-heading text-3xl sm:text-4xl font-extrabold mb-3">
-            Offres d'emploi
+            {t("offres.title")}
           </h1>
           <p className="text-muted-foreground text-lg">
-            {loading ? "Chargement..." : `${offres.length} offre${offres.length !== 1 ? "s" : ""} disponible${offres.length !== 1 ? "s" : ""}`}
+            {countText}
           </p>
         </div>
       </div>
@@ -112,25 +118,25 @@ export default function Offres() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-                placeholder="Rechercher par titre de poste..."
+                placeholder={t("offres.searchPlaceholder")}
                 className="pl-11 h-12 bg-muted/30 border-0 focus-visible:bg-background"
               />
             </div>
             <Button
               variant={showFilters || activeFilterCount > 0 ? "secondary" : "outline"}
               onClick={() => setShowFilters(!showFilters)}
-              aria-label="Filtres avances"
+              aria-label={t("offres.advancedFilters")}
               className="h-12"
             >
               <SlidersHorizontal className="size-4" aria-hidden="true" />
-              <span className="hidden sm:inline">Filtres</span>
+              <span className="hidden sm:inline">{t("offres.filters")}</span>
               {activeFilterCount > 0 && (
                 <Badge variant="default" className="ml-1 size-5 p-0 justify-center text-[10px]">{activeFilterCount}</Badge>
               )}
             </Button>
             <Button onClick={handleSearch} className="h-12 px-6">
               <Search className="size-4" aria-hidden="true" />
-              Rechercher
+              {t("offres.search")}
             </Button>
           </div>
         </Card>
@@ -139,7 +145,7 @@ export default function Offres() {
         {showFilters && (
           <Card className="p-6 mb-6 animate-scale-in">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="font-heading font-bold text-lg">Filtres avances</h2>
+              <h2 className="font-heading font-bold text-lg">{t("offres.advancedFilters")}</h2>
               {activeFilterCount > 0 && (
                 <Button
                   variant="ghost"
@@ -148,22 +154,22 @@ export default function Offres() {
                   className="text-destructive hover:text-destructive"
                 >
                   <X className="size-3.5" aria-hidden="true" />
-                  Reinitialiser
+                  {t("offres.reset")}
                 </Button>
               )}
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="space-y-2">
-                <Label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Categorie</Label>
-                <select value={filters.categorieId} onChange={(e) => setFilters({ ...filters, categorieId: e.target.value })} className={selectClass} aria-label="Filtrer par categorie">
-                  <option value="">Toutes</option>
+                <Label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">{t("offres.category")}</Label>
+                <select value={filters.categorieId} onChange={(e) => setFilters({ ...filters, categorieId: e.target.value })} className={selectClass} aria-label={t("offres.category")}>
+                  <option value="">{t("offres.allF")}</option>
                   {categories.map((c) => <option key={c.id} value={c.id}>{c.nom}</option>)}
                 </select>
               </div>
               <div className="space-y-2">
-                <Label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Contrat</Label>
-                <select value={filters.typeContrat} onChange={(e) => setFilters({ ...filters, typeContrat: e.target.value })} className={selectClass} aria-label="Filtrer par type de contrat">
-                  <option value="">Tous</option>
+                <Label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">{t("offres.contract")}</Label>
+                <select value={filters.typeContrat} onChange={(e) => setFilters({ ...filters, typeContrat: e.target.value })} className={selectClass} aria-label={t("offres.contract")}>
+                  <option value="">{t("offres.allM")}</option>
                   <option value="CDI">CDI</option>
                   <option value="CDD">CDD</option>
                   <option value="Stage">Stage</option>
@@ -171,13 +177,13 @@ export default function Offres() {
                 </select>
               </div>
               <div className="space-y-2">
-                <Label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Ville</Label>
-                <Input value={filters.ville} onChange={(e) => setFilters({ ...filters, ville: e.target.value })} placeholder="Ex: Tunis" />
+                <Label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">{t("offres.city")}</Label>
+                <Input value={filters.ville} onChange={(e) => setFilters({ ...filters, ville: e.target.value })} placeholder={t("offres.cityPlaceholder")} />
               </div>
               <div className="space-y-2">
-                <Label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Niveau</Label>
-                <select value={filters.niveauEtude} onChange={(e) => setFilters({ ...filters, niveauEtude: e.target.value })} className={selectClass} aria-label="Filtrer par niveau d'etude">
-                  <option value="">Tous</option>
+                <Label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">{t("offres.level")}</Label>
+                <select value={filters.niveauEtude} onChange={(e) => setFilters({ ...filters, niveauEtude: e.target.value })} className={selectClass} aria-label={t("offres.level")}>
+                  <option value="">{t("offres.allM")}</option>
                   <option value="Bac">Bac</option>
                   <option value="Bac+2">Bac+2</option>
                   <option value="Bac+3">Bac+3</option>
@@ -209,11 +215,11 @@ export default function Offres() {
             <div className="size-24 bg-gradient-to-br from-muted to-muted/50 rounded-3xl flex items-center justify-center mx-auto mb-6">
               <Briefcase className="size-10 text-muted-foreground/30" aria-hidden="true" />
             </div>
-            <h2 className="font-heading text-xl font-bold mb-2">Aucune offre trouvee</h2>
-            <p className="text-muted-foreground max-w-sm mx-auto mb-6">Essayez de modifier vos criteres de recherche ou explorez toutes les offres.</p>
+            <h2 className="font-heading text-xl font-bold mb-2">{t("offres.noResults")}</h2>
+            <p className="text-muted-foreground max-w-sm mx-auto mb-6">{t("offres.noResultsDesc")}</p>
             <Button onClick={handleResetSearch}>
               <Search className="size-4" aria-hidden="true" />
-              Voir toutes les offres
+              {t("offres.seeAll")}
             </Button>
           </div>
         ) : (
@@ -221,7 +227,6 @@ export default function Offres() {
             {offres.map((offre) => (
               <Link key={offre.id} to={`/offres/${offre.id}`}>
                 <Card className="group relative p-8 hover:shadow-xl hover:shadow-black/[0.05] hover:-translate-y-1 cursor-pointer h-full overflow-hidden">
-                  {/* Accent bar on hover */}
                   <div className="absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-primary to-primary-dark rounded-l-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
                   <div className="flex items-start justify-between mb-4">
@@ -235,7 +240,7 @@ export default function Offres() {
                     )}
                   </div>
                   <p className="text-muted-foreground text-sm line-clamp-2 mb-4 leading-relaxed">
-                    {offre.description || "Pas de description disponible"}
+                    {offre.description || t("offres.noDescription")}
                   </p>
                   <div className="flex items-center justify-between">
                     <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">

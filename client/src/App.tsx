@@ -1,5 +1,7 @@
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { LanguageProvider } from "@/context/LanguageContext";
 import { AuthProvider } from "@/context/AuthContext";
+import { useLanguage } from "@/context/LanguageContext";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import FloatingActions from "@/components/FloatingActions";
@@ -17,6 +19,7 @@ import RecruteurDashboard from "@/pages/RecruteurDashboard";
 import AdminDashboard from "@/pages/AdminDashboard";
 
 function AppLayout() {
+  const { t } = useLanguage();
   const location = useLocation();
   const useMinimalFooter = location.pathname === "/login"
     || location.pathname === "/register"
@@ -26,7 +29,7 @@ function AppLayout() {
     <div className="min-h-screen flex flex-col [--navbar-height:4rem]">
       {/* Skip to content - Accessibility: keyboard users can bypass nav */}
       <a href="#main-content" className="skip-to-content">
-        Aller au contenu principal
+        {t("app.skipToContent")}
       </a>
 
       <Navbar />
@@ -79,9 +82,11 @@ function AppLayout() {
 export default function App() {
   return (
     <BrowserRouter>
-      <AuthProvider>
-        <AppLayout />
-      </AuthProvider>
+      <LanguageProvider>
+        <AuthProvider>
+          <AppLayout />
+        </AuthProvider>
+      </LanguageProvider>
     </BrowserRouter>
   );
 }
