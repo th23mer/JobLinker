@@ -28,7 +28,6 @@ import type { OffreEmploi } from "@/types";
 
 type Audience = "candidate" | "recruiter";
 type HeroVariant = "benefit" | "action";
-type Language = "fr" | "en";
 type MarqueeOffer = {
   id: number;
   title: string;
@@ -325,28 +324,6 @@ function useHeroVariant(search: string): HeroVariant {
   }, [search]);
 
   return variant;
-}
-
-function detectLanguage(search: string): Language {
-  const searchParams = new URLSearchParams(search);
-  const forcedLanguage = searchParams.get("lang")?.toLowerCase();
-
-  if (forcedLanguage === "fr" || forcedLanguage === "en") {
-    return forcedLanguage;
-  }
-
-  if (typeof window !== "undefined") {
-    const storedLanguage = window.localStorage.getItem("joblinker-language");
-    if (storedLanguage === "fr" || storedLanguage === "en") {
-      return storedLanguage;
-    }
-
-    if (window.navigator.language.toLowerCase().startsWith("en")) {
-      return "en";
-    }
-  }
-
-  return "fr";
 }
 
 function AnimatedStatCard({

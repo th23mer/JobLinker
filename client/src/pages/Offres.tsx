@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useSearchParams } from "react-router-dom";
+import { useTranslation } from "@/hooks/useTranslation";
 import { api } from "@/services/api";
 import type { OffreEmploi, Categorie } from "@/types";
 import { Search, MapPin, Briefcase, GraduationCap, SlidersHorizontal, X, ArrowRight } from "lucide-react";
@@ -11,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Offres() {
+  const { t } = useTranslation();
   const [searchParams] = useSearchParams();
   const [offres, setOffres] = useState<OffreEmploi[]>([]);
   const [categories, setCategories] = useState<Categorie[]>([]);
@@ -91,12 +93,12 @@ export default function Offres() {
       <div className="relative bg-gradient-to-b from-muted/60 to-transparent">
         <div className="absolute inset-0 dot-pattern opacity-20" />
         <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-10">
-          <Badge variant="info" className="mb-4">Explorez</Badge>
+          <Badge variant="info" className="mb-4">{t("explorez")}</Badge>
           <h1 className="font-heading text-3xl sm:text-4xl font-extrabold mb-3">
-            Offres d'emploi
+            {t("titreOffres")}
           </h1>
           <p className="text-muted-foreground text-lg">
-            {loading ? "Chargement..." : `${offres.length} offre${offres.length !== 1 ? "s" : ""} disponible${offres.length !== 1 ? "s" : ""}`}
+            {loading ? t("chargement") : `${offres.length} ${t("offres_disponibles")}${offres.length !== 1 ? "s" : ""} ${t("disponibles")}${offres.length !== 1 ? "s" : ""}`}
           </p>
         </div>
       </div>
@@ -112,25 +114,25 @@ export default function Offres() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-                placeholder="Rechercher par titre de poste..."
+                placeholder={t("recherherParTitre")}
                 className="pl-11 h-12 bg-muted/30 border-0 focus-visible:bg-background"
               />
             </div>
             <Button
               variant={showFilters || activeFilterCount > 0 ? "secondary" : "outline"}
               onClick={() => setShowFilters(!showFilters)}
-              aria-label="Filtres avances"
+              aria-label={t("filtres")}
               className="h-12"
             >
               <SlidersHorizontal className="size-4" aria-hidden="true" />
-              <span className="hidden sm:inline">Filtres</span>
+              <span className="hidden sm:inline">{t("filtres")}</span>
               {activeFilterCount > 0 && (
                 <Badge variant="default" className="ml-1 size-5 p-0 justify-center text-[10px]">{activeFilterCount}</Badge>
               )}
             </Button>
             <Button onClick={handleSearch} className="h-12 px-6">
               <Search className="size-4" aria-hidden="true" />
-              Rechercher
+              {t("rechercher")}
             </Button>
           </div>
         </Card>
@@ -139,7 +141,7 @@ export default function Offres() {
         {showFilters && (
           <Card className="p-6 mb-6 animate-scale-in">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="font-heading font-bold text-lg">Filtres avances</h2>
+              <h2 className="font-heading font-bold text-lg">{t("filtresAvances")}</h2>
               {activeFilterCount > 0 && (
                 <Button
                   variant="ghost"
