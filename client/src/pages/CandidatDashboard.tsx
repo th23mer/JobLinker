@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
+import { useLanguage } from "@/context/LanguageContext";
 import { api } from "@/services/api";
 import type { Candidat, Candidature } from "@/types";
 import { User, FileText, Clock, CheckCircle, XCircle, Inbox, TrendingUp, Pencil, Upload, File } from "lucide-react";
@@ -15,6 +16,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export default function CandidatDashboard() {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const [profil, setProfil] = useState<Candidat | null>(null);
   const [candidatures, setCandidatures] = useState<Candidature[]>([]);
   const [editing, setEditing] = useState(false);
@@ -85,15 +87,15 @@ export default function CandidatDashboard() {
   };
 
   const statusConfig: Record<string, { icon: typeof Clock; variant: "warning" | "success" | "destructive"; label: string }> = {
-    en_attente: { icon: Clock, variant: "warning", label: "En attente" },
-    acceptee: { icon: CheckCircle, variant: "success", label: "Acceptee" },
-    refusee: { icon: XCircle, variant: "destructive", label: "Refusee" },
+    en_attente: { icon: Clock, variant: "warning", label: t("candidatureEnAttente") },
+    acceptee: { icon: CheckCircle, variant: "success", label: t("candidatureAcceptee") },
+    refusee: { icon: XCircle, variant: "destructive", label: t("candidatureRefusee") },
   };
 
   const statCards = [
-    { label: "Total", value: candidatures.length, gradient: "from-primary to-primary-light", icon: FileText },
-    { label: "En attente", value: candidatures.filter((c) => c.statut === "en_attente").length, gradient: "from-amber-500 to-orange-400", icon: Clock },
-    { label: "Acceptees", value: candidatures.filter((c) => c.statut === "acceptee").length, gradient: "from-emerald-500 to-teal-400", icon: TrendingUp },
+    { label: t("total"), value: candidatures.length, gradient: "from-primary to-primary-light", icon: FileText },
+    { label: t("candidatureEnAttente"), value: candidatures.filter((c) => c.statut === "en_attente").length, gradient: "from-amber-500 to-orange-400", icon: Clock },
+    { label: t("acceptees"), value: candidatures.filter((c) => c.statut === "acceptee").length, gradient: "from-emerald-500 to-teal-400", icon: TrendingUp },
   ];
 
   return (
@@ -102,9 +104,9 @@ export default function CandidatDashboard() {
         {/* Header */}
         <div className="mb-8">
           <h1 className="font-heading text-3xl font-extrabold">
-            Bonjour{profil ? `, ${profil.prenom}` : ""} !
+            {t("bonjour")}{profil ? `, ${profil.prenom}` : ""} !
           </h1>
-          <p className="text-muted-foreground mt-2">Gerez vos candidatures et votre profil depuis votre espace personnel.</p>
+          <p className="text-muted-foreground mt-2">{t("gererCandidatures")}</p>
         </div>
 
         {/* Stats */}
@@ -138,13 +140,13 @@ export default function CandidatDashboard() {
         {saveSuccess && (
           <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm font-medium text-emerald-700" role="status">
             <CheckCircle className="inline size-4 mr-2 align-text-bottom" aria-hidden="true" />
-            Profil sauvegarde avec succes.
+            {t("profilSauvegarde")}
           </div>
         )}
         {saveError && (
           <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-700" role="alert">
             <XCircle className="inline size-4 mr-2 align-text-bottom" aria-hidden="true" />
-            Erreur lors de la sauvegarde. Veuillez reessayer.
+            {t("erreurSauvegarde")}
           </div>
         )}
 
@@ -153,12 +155,12 @@ export default function CandidatDashboard() {
           <TabsList>
             <TabsTrigger value="candidatures">
               <FileText className="size-4" aria-hidden="true" />
-              Mes candidatures
+              {t("mesCandidatures")}
               <Badge variant="secondary" className="ml-1">{candidatures.length}</Badge>
             </TabsTrigger>
             <TabsTrigger value="profil">
               <User className="size-4" aria-hidden="true" />
-              Mon profil
+              {t("monProfil")}
             </TabsTrigger>
           </TabsList>
 
@@ -185,10 +187,10 @@ export default function CandidatDashboard() {
                     <div className="size-20 bg-gradient-to-br from-muted to-muted/50 rounded-3xl flex items-center justify-center mx-auto mb-4">
                       <Inbox className="size-9 text-muted-foreground/30" aria-hidden="true" />
                     </div>
-                    <h2 className="font-heading text-lg font-bold mb-2">Aucune candidature</h2>
-                    <p className="text-muted-foreground text-sm max-w-xs mx-auto mb-6">Parcourez les offres et postulez pour commencer votre parcours.</p>
+                    <h2 className="font-heading text-lg font-bold mb-2">{t("aucuneCandidature")}</h2>
+                    <p className="text-muted-foreground text-sm max-w-xs mx-auto mb-6">{t("parcourezOffres")}</p>
                     <Button asChild>
-                      <Link to="/offres">Voir les offres</Link>
+                      <Link to="/offres">{t("voirOffres")}</Link>
                     </Button>
                   </Card>
                 ) : (
@@ -240,16 +242,16 @@ export default function CandidatDashboard() {
                 <CardContent className="p-8">
                   {!editing ? (
                     <>
-                      <h2 className="font-heading text-xl font-bold mb-6">Informations personnelles</h2>
+                      <h2 className="font-heading text-xl font-bold mb-6">{t("infoPersonnelles")}</h2>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                         {[
-                          ["Nom", profil.nom],
-                          ["Prenom", profil.prenom],
-                          ["Email", profil.email],
-                          ["Telephone", profil.telephone],
-                          ["Diplome", profil.diplome],
-                          ["Niveau d'etude", profil.niveauEtude],
-                          ["Experience", profil.experience],
+                          [t("nom"), profil.nom],
+                          [t("prenom"), profil.prenom],
+                          [t("email"), profil.email],
+                          [t("telephone"), profil.telephone],
+                          [t("diplome"), profil.diplome],
+                          [t("niveauEtude"), profil.niveauEtude],
+                          [t("experience"), profil.experience],
                         ].map(([label, value]) => (
                           <div key={label}>
                             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">{label}</p>
@@ -257,13 +259,13 @@ export default function CandidatDashboard() {
                           </div>
                         ))}
                         <div className="sm:col-span-2">
-                          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Lettre de motivation</p>
+                          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">{t("lettreMotivation")}</p>
                           <p className="font-medium text-sm whitespace-pre-line text-muted-foreground">{profil.lettreMotivation || "\u2014"}</p>
                         </div>
                       </div>
                       {/* CV Section */}
                       <div className="mt-8 p-5 rounded-xl border border-border bg-muted/30">
-                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Mon CV (PDF)</p>
+                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">{t("monCv")}</p>
                         {profil.cv ? (
                           <div className="flex items-center gap-3 mb-3">
                             <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
@@ -275,17 +277,17 @@ export default function CandidatDashboard() {
                               rel="noopener noreferrer"
                               className="text-sm font-medium text-primary hover:underline truncate"
                             >
-                              Voir mon CV
+                              {t("voirCv")}
                             </a>
                           </div>
                         ) : (
-                          <p className="text-sm text-muted-foreground mb-3">Aucun CV enregistré.</p>
+                          <p className="text-sm text-muted-foreground mb-3">{t("aucunCv")}</p>
                         )}
                         <label className="inline-flex items-center gap-2 cursor-pointer">
                           <Button size="sm" variant="outline" asChild disabled={uploadingCv}>
                             <span>
                               <Upload className="size-3.5" aria-hidden="true" />
-                              {uploadingCv ? "Envoi..." : profil.cv ? "Remplacer le CV" : "Ajouter un CV"}
+                              {uploadingCv ? t("envoi") : profil.cv ? t("remplacerCv") : t("ajouterCv")}
                             </span>
                           </Button>
                           <input
@@ -298,22 +300,22 @@ export default function CandidatDashboard() {
                         </label>
                       </div>
 
-                      <Button onClick={() => setEditing(true)} className="mt-6" aria-label="Modifier le profil">
+                      <Button onClick={() => setEditing(true)} className="mt-6" aria-label={t("modifierProfil")}>
                         <Pencil className="size-4" aria-hidden="true" />
-                        Modifier le profil
+                        {t("modifierProfil")}
                       </Button>
                     </>
                   ) : (
                     <div className="space-y-4 animate-scale-in">
-                      <h2 className="font-heading text-xl font-bold mb-4">Modifier le profil</h2>
+                      <h2 className="font-heading text-xl font-bold mb-4">{t("modifierProfil")}</h2>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         {[
-                          { id: "e-nom", label: "Nom", key: "nom" as const, autoComplete: "family-name" },
-                          { id: "e-prenom", label: "Prenom", key: "prenom" as const, autoComplete: "given-name" },
-                          { id: "e-tel", label: "Telephone", key: "telephone" as const, autoComplete: "tel" },
-                          { id: "e-diplome", label: "Diplome", key: "diplome" as const, autoComplete: "off" },
-                          { id: "e-niveau", label: "Niveau d'etude", key: "niveauEtude" as const, autoComplete: "off" },
-                          { id: "e-exp", label: "Experience", key: "experience" as const, autoComplete: "off" },
+                          { id: "e-nom", label: t("nom"), key: "nom" as const, autoComplete: "family-name" },
+                          { id: "e-prenom", label: t("prenom"), key: "prenom" as const, autoComplete: "given-name" },
+                          { id: "e-tel", label: t("telephone"), key: "telephone" as const, autoComplete: "tel" },
+                          { id: "e-diplome", label: t("diplome"), key: "diplome" as const, autoComplete: "off" },
+                          { id: "e-niveau", label: t("niveauEtude"), key: "niveauEtude" as const, autoComplete: "off" },
+                          { id: "e-exp", label: t("experience"), key: "experience" as const, autoComplete: "off" },
                         ].map((f) => (
                           <div key={f.id} className="space-y-2">
                             <Label htmlFor={f.id}>{f.label}</Label>
@@ -326,20 +328,20 @@ export default function CandidatDashboard() {
                           </div>
                         ))}
                         <div className="sm:col-span-2 space-y-2">
-                          <Label htmlFor="e-lettre">Lettre de motivation</Label>
+                          <Label htmlFor="e-lettre">{t("lettreMotivation")}</Label>
                           <Textarea
                             id="e-lettre"
                             rows={4}
                             value={form.lettreMotivation}
                             onChange={(e) => setForm({ ...form, lettreMotivation: e.target.value })}
-                            placeholder="Presentez-vous brievement..."
+                            placeholder={t("presentezBrievement")}
                           />
                         </div>
                       </div>
                       <div className="flex gap-3 pt-3">
-                        <Button variant="outline" onClick={() => setEditing(false)}>Annuler</Button>
+                        <Button variant="outline" onClick={() => setEditing(false)}>{t("annuler")}</Button>
                         <Button onClick={handleSave} disabled={saving}>
-                          {saving ? "Sauvegarde..." : "Sauvegarder"}
+                          {saving ? t("sauvegarde") : t("sauvegarder")}
                         </Button>
                       </div>
                     </div>
