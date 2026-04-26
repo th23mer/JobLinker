@@ -1,0 +1,32 @@
+name: Accessibility Checks
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  lighthouse-ci:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: client
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build client
+        run: npm run build
+
+      - name: Run Lighthouse CI accessibility assertions
+        run: npx @lhci/cli@0.14.0 autorun --config=./lighthouserc.json

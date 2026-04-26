@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#2563eb"/>
+      <stop offset="100%" stop-color="#1d4ed8"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="10" y1="8" x2="38" y2="40" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#60a5fa"/>
+      <stop offset="100%" stop-color="#3b82f6"/>
+    </linearGradient>
+  </defs>
+  <!-- Rounded square background -->
+  <rect width="48" height="48" rx="12" fill="url(#bg)"/>
+  <!-- Subtle inner glow -->
+  <rect x="2" y="2" width="44" height="44" rx="10" fill="none" stroke="white" stroke-opacity="0.1" stroke-width="1"/>
+  <!-- Link/chain icon symbolizing connection -->
+  <path d="M20 18.5C20 15.46 22.46 13 25.5 13H30.5C33.54 13 36 15.46 36 18.5C36 21.54 33.54 24 30.5 24H28" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M28 29.5C28 32.54 25.54 35 22.5 35H17.5C14.46 35 12 32.54 12 29.5C12 26.46 14.46 24 17.5 24H20" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Diagonal connecting line -->
+  <path d="M21 27L27 21" stroke="url(#accent)" stroke-width="3" stroke-linecap="round"/>
+</svg>
