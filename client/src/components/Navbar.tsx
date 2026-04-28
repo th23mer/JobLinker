@@ -1,7 +1,9 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
-import { Link2, LogOut, LayoutDashboard, Menu, Sparkles, Globe } from "lucide-react";
+import { Link2, LogOut, LayoutDashboard, Menu, Sparkles, Globe, User } from "lucide-react";
+import { api } from "@/services/api";
+import type { Recruteur, Candidat } from "@/types";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -17,6 +19,10 @@ export default function Navbar() {
   const location = useLocation();
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [avatarOpen, setAvatarOpen] = useState(false);
+  const [profileName, setProfileName] = useState<string | null>(null);
+
+  const displayName = profileName ?? (user?.role === "admin" ? "Administrateur" : "Utilisateur");
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -39,6 +45,55 @@ export default function Navbar() {
     : "/candidat";
 
   const isActive = (path: string) => location.pathname === path || location.pathname.startsWith(path + "/");
+
+  // close avatar menu on outside click or navigation
+  useEffect(() => {
+    const onDocClick = () => setAvatarOpen(false);
+    document.addEventListener("click", onDocClick);
+    return () => document.removeEventListener("click", onDocClick);
+  }, []);
+
+  useEffect(() => {
+    if (!isAuthenticated || !user) return;
+    const load = async () => {
+      try {
+        if (user.role === "recruteur") {
+          const p = await api.get<Recruteur>(`/recruteurs/${user.id}`);
+          setProfileName([p.prenomRepresentant, p.nomRepresentant].filter(Boolean).join(" ") || p.nomEntreprise || null);
+        } else if (user.role === "candidat") {
+          const p = await api.get<Candidat>(`/candidats/${user.id}`);
+          setProfileName([p.prenom, p.nom].filter(Boolean).join(" ") || null);
+        } else {
+          // admin or unknown — no profile endpoint, leave null
+          setProfileName(null);
+        }
+      } catch {
+        setProfileName(null);
+      }
+    };
+    void load();
+  }, [isAuthenticated, user]);
+
+  const getInitials = (name?: string | null) => {
+    if (!name) return (user?.role ?? "U").toString().charAt(0).toUpperCase();
+    const parts = name.split(/\s+/).filter(Boolean);
+    if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+    return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+  };
+
+  const getAvatarHue = (name?: string | null) => {
+    const source = name ?? user?.id?.toString() ?? "joblinker";
+    let hash = 0;
+    for (let i = 0; i < source.length; i += 1) {
+      hash = (hash * 31 + source.charCodeAt(i)) % 360;
+    }
+    return hash;
+  };
+
+  const avatarStyle = {
+    background: `linear-gradient(135deg, hsl(${getAvatarHue(profileName)} 85% 58%), hsl(${(getAvatarHue(profileName) + 35) % 360} 85% 48%))`,
+    boxShadow: `0 10px 25px hsla(${getAvatarHue(profileName)}, 85%, 45%, 0.28)`,
+  };
 
   return (
     <nav
@@ -107,10 +162,50 @@ export default function Navbar() {
                     {t("nav.dashboard")}
                   </Link>
                 </Button>
-                <Button variant="ghost" size="sm" onClick={handleLogout} className="text-muted-foreground hover:text-destructive" aria-label={t("nav.logout")}>
-                  <LogOut className="size-4" />
-                  <span className="hidden lg:inline">{t("nav.logout")}</span>
-                </Button>
+                {/* Avatar dropdown */}
+                <div className="relative flex items-center gap-3">
+                  
+                  <button
+                    type="button"
+                    aria-haspopup="true"
+                    aria-expanded={avatarOpen}
+                    onClick={(e) => { e.stopPropagation(); setAvatarOpen((v) => !v); }}
+                    className="size-10 rounded-full flex items-center justify-center text-sm font-bold text-white ring-2 ring-background"
+                    onMouseDown={(e) => e.preventDefault()}
+                    style={avatarStyle}
+                  >
+                    <span className="select-none">{getInitials(profileName)}</span>
+                  </button>
+                  {avatarOpen && (
+                    <div className="absolute right-0 top-full mt-2 w-56 overflow-hidden rounded-xl border border-border/40 bg-background shadow-xl z-40">
+                      <div className="flex items-center gap-3 border-b border-border/30 px-4 py-3 bg-muted/20">
+                        <div className="size-9 rounded-full flex items-center justify-center text-xs font-bold text-white ring-2 ring-background" style={avatarStyle}>
+                          {getInitials(profileName)}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-semibold text-foreground">{displayName}</p>
+                          <p className="truncate text-[11px] uppercase tracking-wider text-muted-foreground/70">{user?.role}</p>
+                        </div>
+                      </div>
+                      <Link
+                        to={dashboardPath}
+                        className="flex items-center gap-2 px-4 py-2.5 text-sm text-foreground hover:bg-muted/30"
+                        onClick={() => setAvatarOpen(false)}
+                      >
+                        <User className="size-4 text-muted-foreground/80" />
+                        <span>Mon profil</span>
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={() => { setAvatarOpen(false); handleLogout(); }}
+                        className="w-full flex items-center gap-2 text-left px-4 py-2.5 text-sm text-destructive hover:bg-muted/30"
+                      >
+                        <LogOut className="size-4" />
+                        <span>Déconnexion</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
               </>
             ) : (
               <>
