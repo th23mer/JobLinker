@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { api } from "@/services/api";
 import type { OffreEmploi, CandidatureWithCandidat, Categorie, Specialite, Recruteur } from "@/types";
@@ -15,6 +15,7 @@ import { JobCard, JobCardSkeleton } from "@/components/recruiter/JobCard";
 import { OfferFormSheet, type OfferFormData } from "@/components/recruiter/OfferFormSheet";
 import { DeleteOfferDialog } from "@/components/recruiter/DeleteOfferDialog";
 import { ProfileDialog } from "@/components/recruiter/ProfileDialog";
+import { OfferDetailsDialog } from "@/components/recruiter/OfferDetailsDialog";
 
 type ApiSpecialite = Specialite & { categorie_id?: number | string; id: number | string };
 
@@ -47,13 +48,20 @@ export default function RecruteurDashboard() {
 
   /* ── Data ── */
   const [offres, setOffres] = useState<OffreEmploi[]>([]);
-  const [candidatureStats, setCandidatureStats] = useState<Record<number, { total: number; nouvelles: number }>>({});
+  const [candidatureStats, setCandidatureStats] = useState<Record<number, { total: number; nouvelles: number; repondues: number }>>({});
   const [loadingStats, setLoadingStats] = useState(false);
   const [categories, setCategories] = useState<Categorie[]>([]);
   const [specialites, setSpecialites] = useState<Specialite[]>([]);
   const [selectedOffre, setSelectedOffre] = useState<number | null>(null);
   const [candidatures, setCandidatures] = useState<CandidatureWithCandidat[]>([]);
   const [candidatureActionLoadingId, setCandidatureActionLoadingId] = useState<number | null>(null);
+
+  /* ── Bulk selection ── */
+  const [selectedOfferIds, setSelectedOfferIds] = useState<Set<number>>(new Set());
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+
+  /* ── Performance columns ── */
+  const [showPerformance, setShowPerformance] = useState(false);
 
   /* ── Delete ── */
   const [deleteTarget, setDeleteTarget] = useState<OffreEmploi | null>(null);
@@ -80,6 +88,9 @@ export default function RecruteurDashboard() {
   const [offerErrors, setOfferErrors] = useState<Record<string, string>>({});
   const [draftStatus, setDraftStatus] = useState<"idle" | "saving" | "saved">("idle");
   const createButtonRef = useRef<HTMLButtonElement | null>(null);
+
+  /* ── Offer details ── */
+  const [offerDetailsTarget, setOfferDetailsTarget] = useState<OffreEmploi | null>(null);
 
   /* ── Profile ── */
   const [profil, setProfil] = useState<Recruteur | null>(null);
@@ -142,14 +153,64 @@ export default function RecruteurDashboard() {
     setContractFilter("all");
     setLocationFilter("all");
     setSortBy("date");
+    pushToast("success", "Filtres réinitialisés.");
   };
 
-  const pushToast = (type: "success" | "error", message: string) => {
+  /* ── Bulk selection handlers ── */
+  const toggleSelectOffer = useCallback((offreId: number) => {
+    setSelectedOfferIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(offreId)) next.delete(offreId);
+      else next.add(offreId);
+      return next;
+    });
+  }, []);
+
+  const toggleSelectAll = () => {
+    if (selectedOfferIds.size === filteredOffres.length) {
+      setSelectedOfferIds(new Set());
+      pushToast("success", "Sélection annulée.");
+    } else {
+      const allIds = filteredOffres.map((o) => o.id);
+      setSelectedOfferIds(new Set(allIds));
+      pushToast("success", `${allIds.length} offre${allIds.length > 1 ? "s" : ""} sélectionnée${allIds.length > 1 ? "s" : ""}.`);
+    }
+  };
+
+  const clearSelection = () => {
+    setSelectedOfferIds(new Set());
+    pushToast("success", "Sélection annulée.");
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedOfferIds.size === 0) return;
+    setBulkDeleting(true);
+    setError(null);
+    try {
+      await Promise.all(
+        Array.from(selectedOfferIds).map((id) => api.delete(`/offres/${id}`))
+      );
+      setOffres((prev) => prev.filter((o) => !selectedOfferIds.has(o.id)));
+      if (selectedOffre && selectedOfferIds.has(selectedOffre)) {
+        setSelectedOffre(null);
+        setCandidatures([]);
+      }
+      pushToast("success", `${selectedOfferIds.size} offre${selectedOfferIds.size > 1 ? "s" : ""} supprimée${selectedOfferIds.size > 1 ? "s" : ""}.`);
+      setSelectedOfferIds(new Set());
+    } catch {
+      setError("Erreur lors de la suppression en lot.");
+      pushToast("error", "Suppression impossible pour certaines offres.");
+    } finally {
+      setBulkDeleting(false);
+    }
+  };
+
+  const pushToast = (type: "success" | "error" | "info", message: string) => {
     const id = Date.now() + Math.floor(Math.random() * 1000);
     setToasts((prev) => [...prev, { id, type, message }]);
     window.setTimeout(() => {
       setToasts((prev) => prev.filter((toast) => toast.id !== id));
-    }, 3200);
+    }, 3500);
   };
 
   const contractOptions = useMemo(
@@ -203,17 +264,7 @@ export default function RecruteurDashboard() {
 
   const openCreateForm = () => {
     setEditingOffre(null);
-    const draftKey = `joblinker:offer-draft:${user?.id ?? "anonymous"}`;
-    const draft = window.localStorage.getItem(draftKey);
-    if (draft) {
-      try {
-        setForm({ ...emptyOfferForm, ...(JSON.parse(draft) as OfferFormData) });
-      } catch {
-        setForm(emptyOfferForm);
-      }
-    } else {
-      setForm(emptyOfferForm);
-    }
+    setForm(emptyOfferForm);
     setOfferTouched({});
     setOfferErrors({});
     setDraftStatus("idle");
@@ -313,17 +364,7 @@ export default function RecruteurDashboard() {
   const validateOfferForm = () =>
     validateOfferFields(["titre", "typeContrat", "ville", "categorieId", "specialiteId", "description", "exigences"]);
 
-  useEffect(() => {
-    if (!showCreate || editingOffre || !user) return;
-    const draftKey = `joblinker:offer-draft:${user.id}`;
-    setDraftStatus("saving");
-    const timeout = window.setTimeout(() => {
-      window.localStorage.setItem(draftKey, JSON.stringify(form));
-      setDraftStatus("saved");
-      window.setTimeout(() => setDraftStatus("idle"), 1200);
-    }, 450);
-    return () => window.clearTimeout(timeout);
-  }, [form, showCreate, editingOffre, user]);
+  // Draft auto-save is now handled inside OfferFormSheet (localStorage key: joblinker_draft_<offerId>).
 
   /* ════════════════════════════════════════════
      API calls
@@ -384,10 +425,11 @@ export default function RecruteurDashboard() {
                 {
                   total: details.length,
                   nouvelles: details.filter((item) => item.statut === "en_attente").length,
+                  repondues: details.filter((item) => item.statut === "acceptee" || item.statut === "refusee").length,
                 },
               ] as const;
             } catch {
-              return [offre.id, { total: 0, nouvelles: 0 }] as const;
+              return [offre.id, { total: 0, nouvelles: 0, repondues: 0 }] as const;
             }
           })
         );
@@ -429,7 +471,7 @@ export default function RecruteurDashboard() {
         setOffres((prev) => [offre, ...prev]);
         window.localStorage.removeItem(`joblinker:offer-draft:${user.id}`);
         setSuccessMsg("Offre créée avec succès !");
-        pushToast("success", "Nouvelle offre publiée.");
+        pushToast("success", `Votre offre "${form.titre}" est maintenant en ligne. Elle sera visible après validation (sous 24h).`);
       }
       closeOfferForm();
       setTimeout(() => setSuccessMsg(null), 3000);
@@ -495,9 +537,10 @@ export default function RecruteurDashboard() {
       setCandidatures(details);
       const total = details.length;
       const nouvelles = details.filter((item) => item.statut === "en_attente").length;
+      const repondues = details.filter((item) => item.statut === "acceptee" || item.statut === "refusee").length;
       setCandidatureStats((prev) => ({
         ...prev,
-        [offreId]: { total, nouvelles },
+        [offreId]: { total, nouvelles, repondues },
       }));
     } catch {
       setCandidatures([]);
@@ -519,9 +562,10 @@ export default function RecruteurDashboard() {
         setCandidatures(refreshed);
         const total = refreshed.length;
         const nouvelles = refreshed.filter((item) => item.statut === "en_attente").length;
+        const repondues = refreshed.filter((item) => item.statut === "acceptee" || item.statut === "refusee").length;
         setCandidatureStats((prev) => ({
           ...prev,
-          [selectedOffre]: { total, nouvelles },
+          [selectedOffre]: { total, nouvelles, repondues },
         }));
       }
     } catch {
@@ -593,15 +637,35 @@ export default function RecruteurDashboard() {
             {toasts.map((toast) => (
               <div
                 key={toast.id}
-                className={`pointer-events-auto rounded-lg border px-3 py-2 text-sm shadow-md ${
+                className={[
+                  "pointer-events-auto flex items-center gap-3 rounded-xl border p-3 shadow-lg animate-in slide-in-from-right-5 duration-300",
                   toast.type === "success"
-                    ? "border-emerald-300 bg-emerald-50 text-emerald-800"
-                    : "border-red-300 bg-red-50 text-red-800"
-                }`}
+                    ? "border-emerald-200 bg-emerald-50 text-emerald-900"
+                    : toast.type === "error"
+                      ? "border-red-200 bg-red-50 text-red-900"
+                      : "border-blue-200 bg-blue-50 text-blue-900",
+                ].join(" ")}
                 role="status"
                 aria-live="polite"
               >
-                {toast.message}
+                <div className={[
+                  "flex size-6 shrink-0 items-center justify-center rounded-full",
+                  toast.type === "success" ? "bg-emerald-200/50 text-emerald-700" :
+                  toast.type === "error" ? "bg-red-200/50 text-red-700" :
+                  "bg-blue-200/50 text-blue-700"
+                ].join(" ")}>
+                  {toast.type === "success" && <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="size-3.5"><path d="M20 6L9 17L4 12" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                  {toast.type === "error" && <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="size-3.5"><path d="M18 6L6 18M6 6l12 12" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                  {toast.type === "info" && <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="size-3.5"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                </div>
+                <p className="text-[13px] font-medium leading-tight">{toast.message}</p>
+                <button 
+                  onClick={() => setToasts(prev => prev.filter(t => t.id !== toast.id))}
+                  className="ml-auto flex size-5 items-center justify-center rounded-md hover:bg-black/5 text-current/40"
+                  aria-label="Fermer"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="size-3"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                </button>
               </div>
             ))}
           </div>
@@ -621,7 +685,7 @@ export default function RecruteurDashboard() {
             ref={createButtonRef}
             variant="success"
             onClick={openCreateForm}
-            className="w-full sm:w-auto sm:shrink-0 shadow-lg shadow-emerald-600/15"
+            className="w-full sm:w-auto sm:shrink-0 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-full px-4 py-2 shadow-lg shadow-indigo-600/20"
           >
             <Plus className="size-4" aria-hidden="true" />
             Nouvelle offre
@@ -651,6 +715,11 @@ export default function RecruteurDashboard() {
           totalOffers={offres.length}
           pendingCount={offres.filter((o) => o.statutValidation === "en_attente").length}
           validatedCount={offres.filter((o) => o.statutValidation === "validee").length}
+          onCardClick={(filter) => {
+            if (filter === 'pending') setStatusFilter('en_cours');
+            else if (filter === 'validated') setStatusFilter('validee');
+            else setStatusFilter('all');
+          }}
         />
 
         {/* ── Filter bar (sticky) ── */}
@@ -671,6 +740,18 @@ export default function RecruteurDashboard() {
             onReset={resetFilters}
             resultCount={filteredOffres.length}
             totalCount={offres.length}
+            selectedCount={selectedOfferIds.size}
+            totalFilteredCount={filteredOffres.length}
+            onSelectAll={toggleSelectAll}
+            onClearSelection={clearSelection}
+            onBulkDelete={handleBulkDelete}
+            bulkDeleting={bulkDeleting}
+            showPerformance={showPerformance}
+            onTogglePerformance={() => {
+              const next = !showPerformance;
+              setShowPerformance(next);
+              pushToast("info", next ? "Mode performance activé." : "Mode performance désactivé.");
+            }}
           />
         )}
 
@@ -717,6 +798,7 @@ export default function RecruteurDashboard() {
         ) : (
           /* Offer cards */
           <div className="space-y-2.5">
+
             {filteredOffres.map((offre) => (
               <JobCard
                 key={offre.id}
@@ -728,10 +810,13 @@ export default function RecruteurDashboard() {
                 onToggleCandidatures={viewCandidatures}
                 onEdit={openEditForm}
                 onDelete={openDeleteModal}
+                onViewDetails={(offer) => setOfferDetailsTarget(offer)}
                 onCandidatureAction={handleCandidatureAction}
                 formatRelativeTime={formatRelativeTime}
                 actionLoadingId={candidatureActionLoadingId}
-                onView={(id) => navigate(`/offres/${id}`)}
+                selected={selectedOfferIds.has(offre.id)}
+                onSelectToggle={toggleSelectOffer}
+                showPerformance={showPerformance}
               />
             ))}
           </div>
@@ -744,6 +829,7 @@ export default function RecruteurDashboard() {
             if (!open) closeOfferForm();
           }}
           editingOffre={editingOffre}
+          offerId={editingOffre?.id}
           form={form}
           categories={categories}
           specialites={specialites}
@@ -753,9 +839,11 @@ export default function RecruteurDashboard() {
           onFieldChange={setOfferField}
           onFieldBlur={handleOfferBlur}
           onValidateFields={validateOfferFields}
+          onNotify={pushToast}
           draftStatus={draftStatus}
           onSubmit={handleCreate}
           onClose={closeOfferForm}
+          onRestoreDraft={(data) => setForm((prev) => ({ ...prev, ...data }))}
         />
 
         {/* ── Delete dialog ── */}
@@ -780,6 +868,14 @@ export default function RecruteurDashboard() {
           onFormChange={(field, value) =>
             setProfilForm((prev) => ({ ...prev, [field]: value }))
           }
+        />
+
+        {/* ── Offer details dialog ── */}
+        <OfferDetailsDialog
+          offre={offerDetailsTarget}
+          categories={categories}
+          specialites={specialites}
+          onClose={() => setOfferDetailsTarget(null)}
         />
       </div>
     </div>

@@ -1,19 +1,12 @@
 import {
   Briefcase, Users, Clock, MapPin, Pencil, Trash2, Eye,
-  MoreHorizontal, CheckCircle, AlertTriangle,
+  CheckCircle, AlertTriangle, BarChart3,
 } from "lucide-react";
 import type { OffreEmploi } from "@/types";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu";
 import { CandidaturePanel } from "./CandidaturePanel";
 import type { CandidatureWithCandidat } from "@/types";
 
@@ -22,6 +15,7 @@ import type { CandidatureWithCandidat } from "@/types";
 interface CandidatureStat {
   total: number;
   nouvelles: number;
+  repondues?: number;
 }
 
 interface JobCardProps {
@@ -35,8 +29,11 @@ interface JobCardProps {
   onDelete: (offre: OffreEmploi, trigger?: HTMLElement | null) => void;
   onCandidatureAction: (id: number, action: "accepter" | "refuser") => void;
   actionLoadingId: number | null;
-  onView: (offreId: number) => void;
+  onViewDetails: (offre: OffreEmploi) => void;
   formatRelativeTime: (date?: string) => string;
+  selected?: boolean;
+  onSelectToggle?: (offreId: number) => void;
+  showPerformance?: boolean;
 }
 
 /* ── Status helpers ── */
@@ -46,34 +43,30 @@ function getStatusConfig(status: string) {
     case "validee":
       return {
         label: "Validée",
-        variant: "success" as const,
         icon: CheckCircle,
         borderColor: "border-l-emerald-500",
-        dotColor: "bg-emerald-500",
+        badgeClass: "bg-emerald-50 text-emerald-700 border-emerald-200/50",
       };
     case "en_attente":
       return {
-        label: "En attente",
-        variant: "warning" as const,
+        label: "En cours",
         icon: Clock,
         borderColor: "border-l-amber-500",
-        dotColor: "bg-amber-500",
+        badgeClass: "bg-amber-50 text-amber-700 border-amber-200/50",
       };
     case "expiree":
       return {
         label: "Expirée",
-        variant: "destructive" as const,
         icon: AlertTriangle,
         borderColor: "border-l-red-400",
-        dotColor: "bg-red-400",
+        badgeClass: "bg-red-50 text-red-700 border-red-200/50",
       };
     default:
       return {
         label: status,
-        variant: "secondary" as const,
         icon: Briefcase,
         borderColor: "border-l-slate-300",
-        dotColor: "bg-slate-400",
+        badgeClass: "bg-slate-50 text-slate-700 border-slate-200/50",
       };
   }
 }
@@ -108,19 +101,25 @@ export function JobCard({
   onDelete,
   onCandidatureAction,
   actionLoadingId,
-  onView,
+  onViewDetails,
   formatRelativeTime,
+  selected = false,
+  onSelectToggle,
+  showPerformance = false,
 }: JobCardProps) {
   const status = getStatusConfig(offre.statutValidation);
   const StatusIcon = status.icon;
   const totalCandidatures = stat?.total ?? 0;
   const newCandidatures = stat?.nouvelles ?? 0;
+  const repondues = stat?.repondues ?? 0;
+  const responseRate = totalCandidatures > 0 ? Math.round((repondues / totalCandidatures) * 100) : 0;
 
   return (
     <Card
       className={[
-        "group overflow-hidden border-l-[3px] border-border/40 bg-background/80 backdrop-blur-sm transition-all duration-200",
+        "group relative overflow-hidden bg-white/90 backdrop-blur-sm transition-all duration-200 rounded-xl border border-border/30 border-l-4",
         status.borderColor,
+        selected ? "ring-2 ring-primary/40 border-primary/30 bg-primary/[0.02]" : "",
         isExpanded
           ? "shadow-lg shadow-primary/[0.06] ring-1 ring-primary/10"
           : "hover:shadow-md hover:shadow-black/[0.04] hover:-translate-y-px",
@@ -128,43 +127,74 @@ export function JobCard({
     >
       {/* Main row */}
       <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
-        {/* Left: info */}
-        <div className="flex items-start gap-3 flex-1 min-w-0">
-          {/* Icon */}
-          <div className="flex size-9 items-center justify-center rounded-lg bg-muted/50 shrink-0 transition-colors group-hover:bg-muted/80">
-            <Briefcase className="size-4 text-muted-foreground/70" aria-hidden="true" />
-          </div>
+        {/* Left: checkbox + info */}
+        <div className="flex items-center gap-3 min-w-0 flex-1">
+          {/* Bulk selection checkbox */}
+          {onSelectToggle && (
+            <label className="flex items-center shrink-0 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={selected}
+                onChange={() => onSelectToggle(offre.id)}
+                className="size-4 rounded border-border/60 text-primary focus:ring-primary/30 cursor-pointer accent-[var(--primary)]"
+                aria-label={`Sélectionner l'offre "${offre.titre}"`}
+              />
+            </label>
+          )}
 
+          {/* Offer info */}
           <div className="min-w-0 flex-1">
-            {/* Title + status */}
-            <div className="flex flex-wrap items-center gap-2 mb-1.5">
-              <h3 className="font-heading text-[14px] font-semibold leading-snug text-foreground">
+            {/* Title + status badge row */}
+            <div className="flex flex-wrap items-center gap-2 mb-1">
+              <h3 className="font-heading text-[15px] font-medium leading-snug text-foreground truncate">
                 {offre.titre}
               </h3>
-              <Badge variant={status.variant} className="gap-1 text-[10px] px-2 py-0.5 font-medium">
-                <StatusIcon className="size-2.5" aria-hidden="true" />
+              <Badge
+                className={[
+                  "gap-1.5 text-[10px] px-2 py-0.5 font-semibold shrink-0 rounded-full border shadow-none",
+                  status.badgeClass
+                ].join(" ")}
+                role="status"
+                aria-label={`Statut: ${status.label}`}
+              >
+                <StatusIcon className="size-3" aria-hidden="true" />
                 {status.label}
               </Badge>
             </div>
 
             {/* Metadata — single clean line */}
-            <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[12px] text-muted-foreground/70">
+            <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[12px] text-muted-foreground/60">
               <span className="inline-flex items-center gap-1">
-                <MapPin className="size-3 text-muted-foreground/50" aria-hidden="true" />
+                <MapPin className="size-3 text-muted-foreground/40" aria-hidden="true" />
                 {offre.ville || "—"}
               </span>
-              <span className="size-[3px] rounded-full bg-border/80" />
-              <span className="font-medium text-foreground/60">{offre.typeContrat}</span>
-              <span className="size-[3px] rounded-full bg-border/80" />
+              <span className="size-[3px] rounded-full bg-border/60" aria-hidden="true" />
+              <span className="font-medium text-foreground/50">{offre.typeContrat}</span>
+              <span className="size-[3px] rounded-full bg-border/60" aria-hidden="true" />
               <span className="inline-flex items-center gap-1">
-                <Clock className="size-3 text-muted-foreground/50" aria-hidden="true" />
+                <Clock className="size-3 text-muted-foreground/40" aria-hidden="true" />
                 {formatRelativeTime(offre.createdAt)}
               </span>
             </div>
+
+            {/* Optional performance stats row */}
+            {showPerformance && (
+              <div className="flex items-center gap-3 mt-1.5">
+                <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground/50">
+                  <BarChart3 className="size-3" aria-hidden="true" />
+                  Taux de réponse: <span className="font-semibold text-foreground/60 tabular-nums">{responseRate}%</span>
+                </span>
+                {totalCandidatures > 0 && (
+                  <span className="text-[11px] text-muted-foreground/50">
+                    {repondues}/{totalCandidatures} traitées
+                  </span>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Right: candidatures + actions */}
+        {/* Right: candidatures + inline actions */}
         <div className="flex items-center gap-1.5 sm:ml-3 shrink-0">
           {/* Candidatures button */}
           <Button
@@ -178,61 +208,64 @@ export function JobCard({
                 ? "border-border/50 text-muted-foreground hover:text-primary hover:border-primary/30 hover:bg-primary/[0.03]"
                 : "shadow-sm",
             ].join(" ")}
-            aria-label={`Voir les candidatures de ${offre.titre}`}
+            aria-label={`${totalCandidatures} candidatures pour "${offre.titre}"${newCandidatures > 0 ? `, dont ${newCandidatures} non lues` : ""}`}
             title="Afficher les candidatures"
           >
             <Users className="size-3.5" aria-hidden="true" />
             <span className="tabular-nums">{loadingStats ? "…" : totalCandidatures}</span>
             {newCandidatures > 0 && !loadingStats && (
-              <span className="ml-0.5 inline-flex size-4 items-center justify-center rounded-full bg-amber-500 text-[9px] font-bold text-white shadow-sm shadow-amber-500/30">
+              <span
+                className="ml-0.5 inline-flex size-4 items-center justify-center rounded-full bg-amber-600 text-[9px] font-bold text-white shadow-sm shadow-amber-600/30"
+                aria-label={`${newCandidatures} candidature${newCandidatures > 1 ? "s" : ""} non lue${newCandidatures > 1 ? "s" : ""}`}
+                title={`${newCandidatures} non lue${newCandidatures > 1 ? "s" : ""}`}
+              >
                 {newCandidatures}
               </span>
             )}
           </Button>
 
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-sm"
-            onClick={() => onView(offre.id)}
-            className="size-8 text-muted-foreground/60 hover:text-foreground hover:bg-muted/60"
-            aria-label="Voir l'offre"
-            title="Voir l'offre"
-          >
-            <Eye className="size-4" aria-hidden="true" />
-          </Button>
+          {/* Inline primary actions */}
+          <div className="flex items-center bg-muted/20 rounded-xl p-1 border border-border/10 shadow-sm">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              onClick={() => onViewDetails(offre)}
+              className="size-8 text-muted-foreground/50 hover:text-primary hover:bg-primary/5 transition-all rounded-lg"
+              aria-label={`Voir les détails de "${offre.titre}"`}
+              title="Voir l'offre"
+            >
+              <Eye className="size-4" aria-hidden="true" />
+            </Button>
 
-          {/* Actions dropdown */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                className="size-8 text-muted-foreground/50 hover:text-foreground hover:bg-muted/60"
-                aria-label="Actions pour cette offre"
-                title="Modifier ou supprimer"
-              >
-                <MoreHorizontal className="size-4" aria-hidden="true" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-40">
-              <DropdownMenuItem onClick={() => onEdit(offre)} className="gap-2 text-[13px]">
-                <Pencil className="size-3.5 text-muted-foreground" aria-hidden="true" />
-                Modifier
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={(e) => {
-                  const trigger = (e.target as HTMLElement).closest("button");
-                  onDelete(offre, trigger);
-                }}
-                className="gap-2 text-[13px] text-destructive focus:text-destructive focus:bg-destructive/5"
-              >
-                <Trash2 className="size-3.5" aria-hidden="true" />
-                Supprimer
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+            <div className="w-px h-4 bg-border/20 mx-0.5" aria-hidden="true" />
+
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              onClick={() => onEdit(offre)}
+              className="size-8 text-muted-foreground/50 hover:text-amber-600 hover:bg-amber-50 transition-all rounded-lg"
+              aria-label={`Modifier "${offre.titre}"`}
+              title="Modifier"
+            >
+              <Pencil className="size-4" aria-hidden="true" />
+            </Button>
+
+            <div className="w-px h-4 bg-border/20 mx-0.5" aria-hidden="true" />
+
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              onClick={() => onDelete(offre)}
+              className="size-8 text-muted-foreground/50 hover:text-destructive hover:bg-destructive/5 transition-all rounded-lg"
+              aria-label={`Supprimer "${offre.titre}"`}
+              title="Supprimer"
+            >
+              <Trash2 className="size-4" aria-hidden="true" />
+            </Button>
+          </div>
         </div>
       </div>
 
