@@ -1,8 +1,7 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
-import { useTranslation } from "@/hooks/useTranslation";
-import { Link2, LogOut, LayoutDashboard, Menu, Sparkles } from "lucide-react";
+import { Link2, LogOut, LayoutDashboard, Menu, Sparkles, Globe } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -19,6 +18,10 @@ export default function Navbar() {
   const location = useLocation();
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [avatarOpen, setAvatarOpen] = useState(false);
+  const [profileName, setProfileName] = useState<string | null>(null);
+
+  const displayName = profileName ?? (user?.role === "admin" ? "Administrateur" : "Utilisateur");
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -37,6 +40,55 @@ export default function Navbar() {
     : "/candidat";
 
   const isActive = (path: string) => location.pathname === path || location.pathname.startsWith(path + "/");
+
+  // close avatar menu on outside click or navigation
+  useEffect(() => {
+    const onDocClick = () => setAvatarOpen(false);
+    document.addEventListener("click", onDocClick);
+    return () => document.removeEventListener("click", onDocClick);
+  }, []);
+
+  useEffect(() => {
+    if (!isAuthenticated || !user) return;
+    const load = async () => {
+      try {
+        if (user.role === "recruteur") {
+          const p = await api.get<Recruteur>(`/recruteurs/${user.id}`);
+          setProfileName([p.prenomRepresentant, p.nomRepresentant].filter(Boolean).join(" ") || p.nomEntreprise || null);
+        } else if (user.role === "candidat") {
+          const p = await api.get<Candidat>(`/candidats/${user.id}`);
+          setProfileName([p.prenom, p.nom].filter(Boolean).join(" ") || null);
+        } else {
+          // admin or unknown — no profile endpoint, leave null
+          setProfileName(null);
+        }
+      } catch {
+        setProfileName(null);
+      }
+    };
+    void load();
+  }, [isAuthenticated, user]);
+
+  const getInitials = (name?: string | null) => {
+    if (!name) return (user?.role ?? "U").toString().charAt(0).toUpperCase();
+    const parts = name.split(/\s+/).filter(Boolean);
+    if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+    return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+  };
+
+  const getAvatarHue = (name?: string | null) => {
+    const source = name ?? user?.id?.toString() ?? "joblinker";
+    let hash = 0;
+    for (let i = 0; i < source.length; i += 1) {
+      hash = (hash * 31 + source.charCodeAt(i)) % 360;
+    }
+    return hash;
+  };
+
+  const avatarStyle = {
+    background: `linear-gradient(135deg, hsl(${getAvatarHue(profileName)} 85% 58%), hsl(${(getAvatarHue(profileName) + 35) % 360} 85% 48%))`,
+    boxShadow: `0 10px 25px hsla(${getAvatarHue(profileName)}, 85%, 45%, 0.28)`,
+  };
 
   return (
     <nav
@@ -117,10 +169,9 @@ export default function Navbar() {
                     {t("dashboard")}
                   </Link>
                 </Button>
-                <Separator orientation="vertical" className="h-6 mx-2" />
-                <Button variant="ghost" size="sm" onClick={handleLogout} className="text-muted-foreground hover:text-destructive" aria-label={t("deconnexion")}>
+                <Button variant="ghost" size="sm" onClick={handleLogout} className="text-muted-foreground hover:text-destructive" aria-label={t("nav.logout")}>
                   <LogOut className="size-4" />
-                  <span className="hidden lg:inline">{t("deconnexion")}</span>
+                  <span className="hidden lg:inline">{t("nav.logout")}</span>
                 </Button>
               </>
             ) : (

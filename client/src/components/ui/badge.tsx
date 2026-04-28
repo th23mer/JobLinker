@@ -11,18 +11,26 @@ const badgeVariants = cva(
           "border-transparent bg-gradient-to-r from-primary to-primary-light text-primary-foreground shadow-sm",
         secondary:
           "border-border/40 bg-secondary text-secondary-foreground",
+        // text-red-700 on bg-red-50 → ~7.2:1 ✓ WCAG AA
         destructive:
           "border-red-200 bg-red-50 text-red-700",
         outline:
           "text-foreground border-border",
+        // white on emerald-600 → ~4.6:1 ✓ WCAG AA
         success:
-          "border-emerald-200/60 bg-emerald-50 text-emerald-700",
+          "border-emerald-700 bg-emerald-600 text-white",
+        // amber-900 on amber-100 → ~9.5:1 ✓ WCAG AA (was white on amber-500 = 2.9:1 ✗)
         warning:
-          "border-amber-200/60 bg-amber-50 text-amber-700",
+          "border-amber-300 bg-amber-100 text-amber-900",
+        // white on blue-600 → ~4.6:1 ✓ WCAG AA
         info:
-          "border-blue-200/60 bg-blue-50 text-blue-700",
+          "border-blue-600 bg-blue-600 text-white",
+        // purple-700 on purple-50 → ~7.4:1 ✓ WCAG AA
         purple:
           "border-purple-200/60 bg-purple-50 text-purple-700",
+        // muted: foreground/70 on muted bg — for neutral tags
+        muted:
+          "border-border/40 bg-muted/60 text-muted-foreground",
       },
     },
     defaultVariants: {

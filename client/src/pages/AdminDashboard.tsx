@@ -9,6 +9,12 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 
+type ConfirmDelete = {
+  kind: "offre" | "categorie" | "specialite";
+  id: number;
+  label: string;
+};
+
 export default function AdminDashboard() {
   const [recruteurs, setRecruteurs] = useState<Recruteur[]>([]);
   const [offres, setOffres] = useState<OffreEmploi[]>([]);
@@ -18,12 +24,24 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [toasts, setToasts] = useState<Array<{ id: number; type: "success" | "error"; message: string }>>([]);
 
   const [newCatName, setNewCatName] = useState("");
   const [newSpecName, setNewSpecName] = useState("");
   const [newSpecCatId, setNewSpecCatId] = useState("");
   const [editingCat, setEditingCat] = useState<{ id: number; nom: string } | null>(null);
   const [editingSpec, setEditingSpec] = useState<{ id: number; nom: string } | null>(null);
+  const [validatingRecruteurId, setValidatingRecruteurId] = useState<number | null>(null);
+  const [validatingOffreId, setValidatingOffreId] = useState<number | null>(null);
+  const [deletingOffreId, setDeletingOffreId] = useState<number | null>(null);
+  const [creatingCat, setCreatingCat] = useState(false);
+  const [updatingCatId, setUpdatingCatId] = useState<number | null>(null);
+  const [deletingCatId, setDeletingCatId] = useState<number | null>(null);
+  const [creatingSpec, setCreatingSpec] = useState(false);
+  const [updatingSpecId, setUpdatingSpecId] = useState<number | null>(null);
+  const [deletingSpecId, setDeletingSpecId] = useState<number | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<ConfirmDelete | null>(null);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   const selectClass =
     "flex h-11 w-full rounded-xl border border-border/60 bg-background px-4 py-2 text-sm shadow-sm shadow-black/[0.03] transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary/50";
@@ -31,6 +49,14 @@ export default function AdminDashboard() {
   const showSuccess = (msg: string) => {
     setSuccessMsg(msg);
     setTimeout(() => setSuccessMsg(null), 3000);
+  };
+
+  const pushToast = (type: "success" | "error", message: string) => {
+    const id = Date.now() + Math.floor(Math.random() * 1000);
+    setToasts((prev) => [...prev, { id, type, message }]);
+    window.setTimeout(() => {
+      setToasts((prev) => prev.filter((toast) => toast.id !== id));
+    }, 3200);
   };
 
   useEffect(() => {
@@ -57,104 +83,170 @@ export default function AdminDashboard() {
   }, []);
 
   const validerRecruteur = async (id: number) => {
+    setValidatingRecruteurId(id);
     try {
       const updated = await api.patch<Recruteur>(`/recruteurs/${id}/valider`);
       setRecruteurs(recruteurs.map((r) => (r.id === id ? updated : r)));
       showSuccess("Recruteur valide avec succes.");
+      pushToast("success", "Recruteur valide avec succes.");
     } catch {
       setError("Erreur lors de la validation du recruteur.");
+      pushToast("error", "Impossible de valider ce recruteur.");
+    } finally {
+      setValidatingRecruteurId(null);
     }
   };
 
   const validerOffre = async (id: number) => {
+    setValidatingOffreId(id);
     try {
       const updated = await api.patch<OffreEmploi>(`/offres/${id}/valider`);
       setOffres(offres.map((o) => (o.id === id ? updated : o)));
       showSuccess("Offre validee avec succes.");
+      pushToast("success", "Offre validee avec succes.");
     } catch {
       setError("Erreur lors de la validation de l'offre.");
+      pushToast("error", "Impossible de valider cette offre.");
+    } finally {
+      setValidatingOffreId(null);
     }
   };
 
   const deleteOffre = async (id: number) => {
-    if (!window.confirm("Etes-vous sur de vouloir supprimer cet element ?")) return;
+    setDeletingOffreId(id);
     try {
       await api.delete(`/offres/${id}`);
       setOffres(offres.filter((o) => o.id !== id));
       showSuccess("Offre supprimee avec succes.");
+      pushToast("success", "Offre supprimee avec succes.");
     } catch {
       setError("Erreur lors de la suppression de l'offre.");
+      pushToast("error", "Impossible de supprimer cette offre.");
+    } finally {
+      setDeletingOffreId(null);
     }
   };
 
   const createCat = async () => {
     if (!newCatName.trim()) return;
+    setCreatingCat(true);
     try {
       const cat = await api.post<Categorie>("/categories", { nom: newCatName });
       setCategories([...categories, cat]);
       setNewCatName("");
       showSuccess("Categorie creee avec succes.");
+      pushToast("success", "Categorie creee avec succes.");
     } catch {
       setError("Erreur lors de la creation de la categorie.");
+      pushToast("error", "Impossible de creer la categorie.");
+    } finally {
+      setCreatingCat(false);
     }
   };
 
   const updateCat = async () => {
     if (!editingCat) return;
+    setUpdatingCatId(editingCat.id);
     try {
       const cat = await api.put<Categorie>(`/categories/${editingCat.id}`, { nom: editingCat.nom });
       setCategories(categories.map((c) => (c.id === cat.id ? cat : c)));
       setEditingCat(null);
       showSuccess("Categorie modifiee avec succes.");
+      pushToast("success", "Categorie modifiee avec succes.");
     } catch {
       setError("Erreur lors de la modification de la categorie.");
+      pushToast("error", "Impossible de modifier la categorie.");
+    } finally {
+      setUpdatingCatId(null);
     }
   };
 
   const deleteCat = async (id: number) => {
-    if (!window.confirm("Etes-vous sur de vouloir supprimer cet element ?")) return;
+    setDeletingCatId(id);
     try {
       await api.delete(`/categories/${id}`);
       setCategories(categories.filter((c) => c.id !== id));
       setSpecialites(specialites.filter((s) => s.categorieId !== id));
       showSuccess("Categorie supprimee avec succes.");
+      pushToast("success", "Categorie supprimee avec succes.");
     } catch {
       setError("Erreur lors de la suppression de la categorie.");
+      pushToast("error", "Impossible de supprimer la categorie.");
+    } finally {
+      setDeletingCatId(null);
     }
   };
 
   const createSpec = async () => {
     if (!newSpecName.trim() || !newSpecCatId) return;
+    setCreatingSpec(true);
     try {
       const spec = await api.post<Specialite>("/specialites", { nom: newSpecName, categorieId: Number(newSpecCatId) });
       setSpecialites([...specialites, spec]);
       setNewSpecName("");
+      setNewSpecCatId("");
       showSuccess("Specialite creee avec succes.");
+      pushToast("success", "Specialite creee avec succes.");
     } catch {
       setError("Erreur lors de la creation de la specialite.");
+      pushToast("error", "Impossible de creer la specialite.");
+    } finally {
+      setCreatingSpec(false);
     }
   };
 
   const updateSpec = async () => {
     if (!editingSpec) return;
+    setUpdatingSpecId(editingSpec.id);
     try {
       const spec = await api.put<Specialite>(`/specialites/${editingSpec.id}`, { nom: editingSpec.nom });
       setSpecialites(specialites.map((s) => (s.id === spec.id ? spec : s)));
       setEditingSpec(null);
       showSuccess("Specialite modifiee avec succes.");
+      pushToast("success", "Specialite modifiee avec succes.");
     } catch {
       setError("Erreur lors de la modification de la specialite.");
+      pushToast("error", "Impossible de modifier la specialite.");
+    } finally {
+      setUpdatingSpecId(null);
     }
   };
 
   const deleteSpec = async (id: number) => {
-    if (!window.confirm("Etes-vous sur de vouloir supprimer cet element ?")) return;
+    setDeletingSpecId(id);
     try {
       await api.delete(`/specialites/${id}`);
       setSpecialites(specialites.filter((s) => s.id !== id));
       showSuccess("Specialite supprimee avec succes.");
+      pushToast("success", "Specialite supprimee avec succes.");
     } catch {
       setError("Erreur lors de la suppression de la specialite.");
+      pushToast("error", "Impossible de supprimer la specialite.");
+    } finally {
+      setDeletingSpecId(null);
+    }
+  };
+
+  const requestDelete = (kind: ConfirmDelete["kind"], id: number, label: string) => {
+    setConfirmDelete({ kind, id, label });
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!confirmDelete) return;
+    setConfirmingDelete(true);
+    try {
+      if (confirmDelete.kind === "offre") {
+        await deleteOffre(confirmDelete.id);
+      }
+      if (confirmDelete.kind === "categorie") {
+        await deleteCat(confirmDelete.id);
+      }
+      if (confirmDelete.kind === "specialite") {
+        await deleteSpec(confirmDelete.id);
+      }
+      setConfirmDelete(null);
+    } finally {
+      setConfirmingDelete(false);
     }
   };
 
@@ -168,6 +260,25 @@ export default function AdminDashboard() {
   return (
     <div className="pt-20 pb-16 min-h-screen bg-gradient-to-b from-muted/40 to-background">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-10">
+        {toasts.length > 0 && (
+          <div className="pointer-events-none fixed right-4 top-24 z-[80] flex w-[320px] max-w-[calc(100vw-2rem)] flex-col gap-2">
+            {toasts.map((toast) => (
+              <div
+                key={toast.id}
+                className={`pointer-events-auto rounded-lg border px-3 py-2 text-sm shadow-md ${
+                  toast.type === "success"
+                    ? "border-emerald-300 bg-emerald-50 text-emerald-800"
+                    : "border-red-300 bg-red-50 text-red-800"
+                }`}
+                role="status"
+                aria-live="polite"
+              >
+                {toast.message}
+              </div>
+            ))}
+          </div>
+        )}
+
         {/* Feedback banners */}
         {error && (
           <div className="mb-4 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive flex items-center justify-between" role="alert">
@@ -274,9 +385,14 @@ export default function AdminDashboard() {
                           {r.statutValidation === "en_attente" ? "En attente" : "Valide"}
                         </Badge>
                         {r.statutValidation === "en_attente" && (
-                          <Button variant="success" size="sm" onClick={() => validerRecruteur(r.id)}>
+                          <Button
+                            variant="success"
+                            size="sm"
+                            onClick={() => validerRecruteur(r.id)}
+                            disabled={validatingRecruteurId === r.id}
+                          >
                             <CheckCircle className="size-4" aria-hidden="true" />
-                            Valider
+                            {validatingRecruteurId === r.id ? "Validation..." : "Valider"}
                           </Button>
                         )}
                       </div>
@@ -313,12 +429,24 @@ export default function AdminDashboard() {
                       </div>
                       <div className="flex items-center gap-2">
                         {o.statutValidation === "en_attente" && (
-                          <Button variant="success" size="sm" onClick={() => validerOffre(o.id)}>
+                          <Button
+                            variant="success"
+                            size="sm"
+                            onClick={() => validerOffre(o.id)}
+                            disabled={validatingOffreId === o.id}
+                          >
                             <CheckCircle className="size-4" aria-hidden="true" />
-                            Valider
+                            {validatingOffreId === o.id ? "Validation..." : "Valider"}
                           </Button>
                         )}
-                        <Button variant="ghost" size="icon-sm" onClick={() => deleteOffre(o.id)} className="text-muted-foreground hover:text-destructive" aria-label="Supprimer l'offre">
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          onClick={() => requestDelete("offre", o.id, o.titre)}
+                          disabled={deletingOffreId === o.id}
+                          className="text-muted-foreground hover:text-destructive"
+                          aria-label="Supprimer l'offre"
+                        >
                           <Trash2 className="size-4" aria-hidden="true" />
                         </Button>
                       </div>
@@ -344,7 +472,7 @@ export default function AdminDashboard() {
                         autoComplete="off"
                       />
                       <Button onClick={createCat} size="icon" aria-label="Ajouter une categorie">
-                        <Plus className="size-4" aria-hidden="true" />
+                        {creatingCat ? <span className="text-xs">...</span> : <Plus className="size-4" aria-hidden="true" />}
                       </Button>
                     </div>
                     <div className="space-y-2">
@@ -366,7 +494,14 @@ export default function AdminDashboard() {
                                   aria-label="Modifier le nom de la categorie"
                                   autoComplete="off"
                                 />
-                                <Button variant="ghost" size="icon-sm" onClick={updateCat} className="text-emerald-600" aria-label="Enregistrer la categorie">
+                                <Button
+                                  variant="ghost"
+                                  size="icon-sm"
+                                  onClick={updateCat}
+                                  disabled={updatingCatId === c.id}
+                                  className="text-emerald-600"
+                                  aria-label="Enregistrer la categorie"
+                                >
                                   <Save className="size-4" aria-hidden="true" />
                                 </Button>
                                 <Button variant="ghost" size="icon-sm" onClick={() => setEditingCat(null)} aria-label="Annuler la modification">
@@ -380,7 +515,14 @@ export default function AdminDashboard() {
                                   <Button variant="ghost" size="icon-sm" onClick={() => setEditingCat({ id: c.id, nom: c.nom })} className="text-muted-foreground hover:text-primary" aria-label={`Modifier la categorie ${c.nom}`}>
                                     <Pencil className="size-3.5" aria-hidden="true" />
                                   </Button>
-                                  <Button variant="ghost" size="icon-sm" onClick={() => deleteCat(c.id)} className="text-muted-foreground hover:text-destructive" aria-label={`Supprimer la categorie ${c.nom}`}>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon-sm"
+                                    onClick={() => requestDelete("categorie", c.id, c.nom)}
+                                    disabled={deletingCatId === c.id}
+                                    className="text-muted-foreground hover:text-destructive"
+                                    aria-label={`Supprimer la categorie ${c.nom}`}
+                                  >
                                     <Trash2 className="size-3.5" aria-hidden="true" />
                                   </Button>
                                 </div>
@@ -414,8 +556,8 @@ export default function AdminDashboard() {
                         aria-label="Nom de la nouvelle specialite"
                         autoComplete="off"
                       />
-                      <Button onClick={createSpec} size="icon" aria-label="Ajouter une specialite">
-                        <Plus className="size-4" aria-hidden="true" />
+                      <Button onClick={createSpec} size="icon" aria-label="Ajouter une specialite" disabled={creatingSpec}>
+                        {creatingSpec ? <span className="text-xs">...</span> : <Plus className="size-4" aria-hidden="true" />}
                       </Button>
                     </div>
                     <div className="space-y-2">
@@ -437,7 +579,14 @@ export default function AdminDashboard() {
                                   aria-label="Modifier le nom de la specialite"
                                   autoComplete="off"
                                 />
-                                <Button variant="ghost" size="icon-sm" onClick={updateSpec} className="text-emerald-600" aria-label="Enregistrer la specialite">
+                                <Button
+                                  variant="ghost"
+                                  size="icon-sm"
+                                  onClick={updateSpec}
+                                  disabled={updatingSpecId === s.id}
+                                  className="text-emerald-600"
+                                  aria-label="Enregistrer la specialite"
+                                >
                                   <Save className="size-4" aria-hidden="true" />
                                 </Button>
                                 <Button variant="ghost" size="icon-sm" onClick={() => setEditingSpec(null)} aria-label="Annuler la modification">
@@ -454,7 +603,14 @@ export default function AdminDashboard() {
                                   <Button variant="ghost" size="icon-sm" onClick={() => setEditingSpec({ id: s.id, nom: s.nom })} className="text-muted-foreground hover:text-primary" aria-label={`Modifier la specialite ${s.nom}`}>
                                     <Pencil className="size-3.5" aria-hidden="true" />
                                   </Button>
-                                  <Button variant="ghost" size="icon-sm" onClick={() => deleteSpec(s.id)} className="text-muted-foreground hover:text-destructive" aria-label={`Supprimer la specialite ${s.nom}`}>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon-sm"
+                                    onClick={() => requestDelete("specialite", s.id, s.nom)}
+                                    disabled={deletingSpecId === s.id}
+                                    className="text-muted-foreground hover:text-destructive"
+                                    aria-label={`Supprimer la specialite ${s.nom}`}
+                                  >
                                     <Trash2 className="size-3.5" aria-hidden="true" />
                                   </Button>
                                 </div>
@@ -469,6 +625,53 @@ export default function AdminDashboard() {
               </div>
             </TabsContent>
           </Tabs>
+        )}
+
+        {confirmDelete && (
+          <div
+            className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40 px-4 py-6 backdrop-blur-sm"
+            role="presentation"
+            onClick={() => {
+              if (!confirmingDelete) setConfirmDelete(null);
+            }}
+          >
+            <Card
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="admin-delete-title"
+              aria-describedby="admin-delete-description"
+              className="w-full max-w-md shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <CardContent className="p-6">
+                <h3 id="admin-delete-title" className="font-heading text-lg font-bold text-center">
+                  Confirmer la suppression
+                </h3>
+                <p id="admin-delete-description" className="mt-2 text-sm text-muted-foreground text-center">
+                  Cette action est irreversible. L'element
+                  <span className="font-semibold text-foreground"> "{confirmDelete.label}"</span>
+                  sera supprime definitivement.
+                </p>
+
+                <div className="mt-6 flex justify-end gap-3">
+                  <Button
+                    variant="outline"
+                    onClick={() => setConfirmDelete(null)}
+                    disabled={confirmingDelete}
+                  >
+                    Annuler
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    onClick={handleConfirmDelete}
+                    disabled={confirmingDelete}
+                  >
+                    {confirmingDelete ? "Suppression..." : "Supprimer"}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         )}
       </div>
     </div>
