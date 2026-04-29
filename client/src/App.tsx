@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { AuthProvider } from "@/context/AuthContext";
 import { LanguageProvider } from "@/context/LanguageContext";
 import { ProfileModalProvider } from "@/context/ProfileModalContext";
+import { CandidatProfileModalProvider } from "@/context/CandidatProfileModalContext";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import FloatingActions from "@/components/FloatingActions";
@@ -84,7 +85,9 @@ export default function App() {
       <AuthProvider>
         <LanguageProvider>
           <ProfileModalProvider>
-            <AppLayout />
+            <CandidatProfileModalProvider>
+              <AppLayout />
+            </CandidatProfileModalProvider>
           </ProfileModalProvider>
         </LanguageProvider>
       </AuthProvider>

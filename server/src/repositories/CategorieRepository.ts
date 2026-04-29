@@ -16,6 +16,12 @@ export class CategorieRepository implements ICategorieRepository {
   }
 
   async create(nom: string): Promise<Categorie> {
+    // Check if category with same name already exists
+    const existing = await this.pool.query("SELECT id FROM categorie WHERE nom = $1", [nom]);
+    if (existing.rows.length > 0) {
+      throw new Error("Une catégorie avec ce nom existe déjà");
+    }
+    
     const { rows } = await this.pool.query(
       "INSERT INTO categorie (nom) VALUES ($1) RETURNING id, nom",
       [nom]

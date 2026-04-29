@@ -10,14 +10,31 @@ const storage = multer.diskStorage({
     cb(null, cvDir);
   },
   filename: (_req, file, cb) => {
-    const unique = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
-    cb(null, `${unique}.pdf`);
+    const originalName = path.basename(file.originalname);
+    const sanitized = originalName
+      .normalize("NFC")
+      .replace(/[<>:"/\\|?*\u0000-\u001F]/g, "_")
+      .trim();
+
+    const fallbackName = `cv-${Date.now()}.pdf`;
+    const safeName = sanitized || fallbackName;
+    const extension = path.extname(safeName);
+    const baseName = path.basename(safeName, extension);
+
+    let candidateName = safeName;
+    let suffix = 1;
+    while (fs.existsSync(path.join(cvDir, candidateName))) {
+      candidateName = `${baseName}-${suffix}${extension}`;
+      suffix += 1;
+    }
+
+    cb(null, candidateName);
   },
 });
 
 export const uploadCv = multer({
   storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB
+  limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
     if (file.mimetype === "application/pdf") {
       cb(null, true);

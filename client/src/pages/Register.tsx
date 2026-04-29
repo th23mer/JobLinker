@@ -3,7 +3,7 @@ import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { api } from "@/services/api";
 import { useAuth } from "@/context/AuthContext";
 import { cn } from "@/lib/utils";
-import { Link2, UserPlus, CheckCircle2, ArrowRight, Eye, EyeOff, AlertCircle } from "lucide-react";
+import { Link2, CheckCircle2, ArrowRight, Eye, EyeOff, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -77,7 +77,7 @@ function FieldStatus({ touched, error, value }: { touched: boolean; error: strin
   }
 
   return (
-    <p className="mt-1 flex items-center gap-1.5 text-xs text-emerald-600" role="status">
+    <p className="mt-1 flex items-center gap-1.5 text-xs text-primary" role="status">
       <CheckCircle2 className="size-3.5 shrink-0" aria-hidden="true" />
       Champ valide
     </p>
@@ -417,10 +417,11 @@ export default function Register() {
 
   return (
     <div className="min-h-[calc(100svh-var(--navbar-height))] flex items-stretch">
-      <div className="hidden lg:flex lg:w-5/12 lg:min-h-[calc(100svh-var(--navbar-height))] bg-gradient-to-br from-emerald-600 via-teal-600 to-teal-600 relative overflow-hidden">
+      <div className="hidden lg:flex lg:w-1/2 lg:min-h-[calc(100svh-var(--navbar-height))] bg-gradient-to-br from-[#2f80ed] via-[#2563eb] to-[#4338ca] relative overflow-hidden">
         <div className="absolute inset-0 dot-pattern opacity-10" aria-hidden="true" />
         <div className="absolute top-24 left-24 w-80 h-80 bg-white/5 rounded-full blur-3xl" aria-hidden="true" />
-        <div className="absolute bottom-24 right-12 w-96 h-96 bg-teal-400/15 rounded-full blur-3xl" aria-hidden="true" />
+        <div className="absolute bottom-24 right-12 w-96 h-96 bg-[#7c3aed]/25 rounded-full blur-3xl" aria-hidden="true" />
+        <div className="absolute top-1/2 right-1/4 size-3 rounded-full bg-white/20 animate-float" aria-hidden="true" />
 
         <div className="relative z-10 flex flex-col justify-center px-16">
           <div className="flex items-center gap-3 mb-12" aria-hidden="true">
@@ -432,7 +433,7 @@ export default function Register() {
           <h2 className="font-heading text-4xl lg:text-[2.75rem] font-extrabold text-white mb-6 leading-tight">
             Commencez votre aventure professionnelle
           </h2>
-          <p className="text-emerald-100/60 text-lg leading-relaxed max-w-md">
+          <p className="text-white text-lg leading-relaxed max-w-md">
             {role === "candidat"
               ? "Creez votre profil candidat et accedez a des milliers d'offres d'emploi."
               : "Publiez vos offres et trouvez les meilleurs talents pour votre entreprise."}
@@ -444,9 +445,9 @@ export default function Register() {
               "Acces immediat a la plateforme",
               role === "candidat" ? "Postulez en quelques clics" : "Publiez des offres illimitees",
             ].map((item) => (
-              <li key={item} className="flex items-center gap-3 text-emerald-100/80">
+              <li key={item} className="flex items-center gap-3 text-white/85">
                 <div className="size-6 rounded-full bg-white/10 flex items-center justify-center shrink-0" aria-hidden="true">
-                  <CheckCircle2 className="size-3.5 text-emerald-300" />
+                  <CheckCircle2 className="size-3.5 text-white" />
                 </div>
                 <span className="text-sm">{item}</span>
               </li>
@@ -455,26 +456,23 @@ export default function Register() {
         </div>
       </div>
 
-      <div className="w-full lg:w-7/12 lg:min-h-[calc(100svh-var(--navbar-height))] flex items-start justify-center px-6 py-8 overflow-y-auto bg-gradient-to-br from-background to-muted/30">
-        <div className="w-full max-w-lg pt-6 min-h-full flex flex-col">
+      <div className="w-full lg:w-1/2 lg:min-h-[calc(100svh-var(--navbar-height))] flex items-start justify-center px-6 py-8 overflow-y-auto bg-gradient-to-br from-background to-muted/30">
+        <div className="w-full max-w-[420px] pt-6 min-h-full flex flex-col">
           <div className="lg:hidden flex items-center gap-3 mb-12">
-            <div className="size-10 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-500/20">
+            <div className="size-10 bg-gradient-to-br from-[#2f80ed] to-[#4338ca] rounded-2xl flex items-center justify-center shadow-lg shadow-primary/20">
               <Link2 className="size-4 text-white" />
             </div>
             <span className="font-heading text-xl font-bold">JobLinker</span>
           </div>
 
-          <div className="flex items-center gap-3 mb-2">
-            <div className="size-10 rounded-2xl bg-emerald-500/10 flex items-center justify-center" aria-hidden="true">
-              <UserPlus className="size-4 text-emerald-600" />
-            </div>
-            <h1 className="font-heading text-3xl font-extrabold">Inscription</h1>
+          <div className="mb-8">
+            <h1 className="font-heading text-3xl font-extrabold mb-2">Inscription</h1>
+            <p className="text-muted-foreground">Creez votre compte en quelques minutes</p>
           </div>
-          <p className="text-muted-foreground mb-8 ml-[52px]">Creez votre compte en quelques minutes</p>
 
           <Tabs
             value={role}
-            onValueChange={(value) => setRole(value as Role)}
+            onValueChange={(v) => setRole(v as Role)}
             className="mb-8"
           >
             <TabsList aria-label="Type de compte">
@@ -490,7 +488,7 @@ export default function Register() {
           )}
 
           {success && (
-            <Alert variant="success" className="mb-6" role="status">
+            <Alert variant="success" className="mb-6 border-primary/25 bg-primary/5 text-primary-dark [&>svg]:text-primary" role="status">
               <AlertDescription>{success}</AlertDescription>
             </Alert>
           )}
@@ -589,8 +587,8 @@ export default function Register() {
                                   : candidateStrength.score === 2
                                     ? "bg-amber-400"
                                     : candidateStrength.score === 3
-                                      ? "bg-emerald-400"
-                                      : "bg-teal-500"
+                                      ? "bg-primary-light"
+                                      : "bg-primary"
                                 : "bg-border"
                             )}
                           />
@@ -601,18 +599,18 @@ export default function Register() {
                   </div>
                 </>
               ) : (
-                <div className="space-y-4 rounded-2xl border border-emerald-200/70 bg-emerald-50/60 p-4">
+                <div className="space-y-4 rounded-2xl border border-primary/20 bg-primary/5 p-4">
                   <div className="space-y-2">
                     <div className="flex items-center justify-between gap-4">
                       <div>
-                        <p className="font-heading text-lg font-bold text-emerald-950">Completer votre profil (2 min)</p>
-                        <p className="text-xs text-emerald-900/70">Telephone, diplome et niveau d'etude pour rendre votre compte plus visible.</p>
+                        <p className="font-heading text-lg font-bold text-foreground">Completer votre profil (2 min)</p>
+                        <p className="text-xs text-primary-dark/80">Telephone, diplome et niveau d'etude pour rendre votre compte plus visible.</p>
                       </div>
-                      <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800">{profileCompletion}%</span>
+                      <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary-dark">{profileCompletion}%</span>
                     </div>
-                    <div className="h-2 overflow-hidden rounded-full bg-emerald-100" aria-hidden="true">
+                    <div className="h-2 overflow-hidden rounded-full bg-primary/10" aria-hidden="true">
                       <div
-                        className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 transition-all duration-300"
+                        className="h-full rounded-full bg-gradient-to-r from-primary to-primary-light transition-all duration-300"
                         style={{ width: `${profileCompletion}%` }}
                       />
                     </div>
@@ -668,7 +666,7 @@ export default function Register() {
                     </div>
                   </div>
 
-                  <p className="text-xs text-emerald-900/70">Votre profil sera plus complet et plus visible pour les recruteurs.</p>
+                  <p className="text-xs text-primary-dark/80">Votre profil sera plus complet et plus visible pour les recruteurs.</p>
                 </div>
               )
             ) : stage === "account" ? (
@@ -777,8 +775,8 @@ export default function Register() {
                                 : recruiterStrength.score === 2
                                   ? "bg-amber-400"
                                   : recruiterStrength.score === 3
-                                    ? "bg-emerald-400"
-                                    : "bg-teal-500"
+                                    ? "bg-primary-light"
+                                    : "bg-primary"
                               : "bg-border"
                           )}
                         />
@@ -789,18 +787,18 @@ export default function Register() {
                 </div>
               </>
             ) : (
-              <div className="space-y-4 rounded-2xl border border-emerald-200/70 bg-emerald-50/60 p-4">
+              <div className="space-y-4 rounded-2xl border border-primary/20 bg-primary/5 p-4">
                 <div className="space-y-2">
                   <div className="flex items-center justify-between gap-4">
                     <div>
-                      <p className="font-heading text-lg font-bold text-emerald-950">Completer votre profil (2 min)</p>
-                      <p className="text-xs text-emerald-900/70">Ajoutez vos informations d'entreprise pour renforcer votre credibilite.</p>
+                      <p className="font-heading text-lg font-bold text-foreground">Completer votre profil (2 min)</p>
+                      <p className="text-xs text-primary-dark/80">Ajoutez vos informations d'entreprise pour renforcer votre credibilite.</p>
                     </div>
-                    <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800">{recruiterProfileCompletion}%</span>
+                    <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary-dark">{recruiterProfileCompletion}%</span>
                   </div>
-                  <div className="h-2 overflow-hidden rounded-full bg-emerald-100" aria-hidden="true">
+                  <div className="h-2 overflow-hidden rounded-full bg-primary/10" aria-hidden="true">
                     <div
-                      className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 transition-all duration-300"
+                      className="h-full rounded-full bg-gradient-to-r from-primary to-primary-light transition-all duration-300"
                       style={{ width: `${recruiterProfileCompletion}%` }}
                     />
                   </div>
@@ -871,7 +869,7 @@ export default function Register() {
               <div className="flex items-center gap-3">
                 <div className="flex -space-x-2" aria-hidden="true">
                   {[
-                    { initials: "SM", color: "bg-emerald-500" },
+                    { initials: "SM", color: "bg-primary" },
                     { initials: "NB", color: "bg-sky-500" },
                     { initials: "AR", color: "bg-amber-500" },
                     { initials: "YM", color: "bg-violet-500" },
@@ -888,10 +886,10 @@ export default function Register() {
             <Button
               type="submit"
               disabled={loading}
-              variant="success"
+              variant="default"
               className={cn(
                 "w-full h-12",
-                isReadyToSubmit && !loading && "animate-pulse-soft shadow-[0_0_0_3px_rgba(16,185,129,0.2)]"
+                isReadyToSubmit && !loading && "animate-pulse-soft shadow-[0_0_0_3px_rgba(47,128,237,0.22)]"
               )}
               size="lg"
             >

@@ -2,30 +2,47 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { useTranslation } from "@/hooks/useTranslation";
+import { useCandidatProfileModal } from "@/context/CandidatProfileModalContext";
 import { api } from "@/services/api";
 import type { Candidat, Candidature } from "@/types";
-import { User, FileText, Clock, CheckCircle, XCircle, Inbox, TrendingUp, Pencil, Upload, File } from "lucide-react";
+import { FileText, Clock, CheckCircle, XCircle, Inbox, TrendingUp, AlertCircle, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+
+const CANDIDATURES_PAR_PAGE = 6;
 
 export default function CandidatDashboard() {
   const { user } = useAuth();
   const { t } = useTranslation();
+  const { openProfile } = useCandidatProfileModal();
   const [profil, setProfil] = useState<Candidat | null>(null);
   const [candidatures, setCandidatures] = useState<Candidature[]>([]);
-  const [editing, setEditing] = useState(false);
-  const [form, setForm] = useState({ nom: "", prenom: "", telephone: "", diplome: "", niveauEtude: "", experience: "", lettreMotivation: "" });
-  const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [saveSuccess, setSaveSuccess] = useState(false);
-  const [saveError, setSaveError] = useState(false);
-  const [uploadingCv, setUploadingCv] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const calculateProfileCompletion = (p: Candidat | null) => {
+    if (!p) return 0;
+    const fields = [
+      p.nom,
+      p.prenom,
+      p.email,
+      p.telephone,
+      p.diplome,
+      p.niveauEtude,
+      p.experience,
+      p.cv,
+      p.lettreMotivation,
+    ];
+    const filledFields = fields.filter((field) => field && field.trim() !== "").length;
+    return Math.round((filledFields / fields.length) * 100);
+  };
+
+  const profileCompletion = calculateProfileCompletion(profil);
+  const isProfileComplete = profileCompletion === 100;
 
   useEffect(() => {
     if (!user) return;
@@ -33,58 +50,15 @@ export default function CandidatDashboard() {
     Promise.all([
       api.get<Candidat>(`/candidats/${user.id}`),
       api.get<Candidature[]>(`/candidatures/candidat/${user.id}`),
-    ]).then(([p, c]) => {
-      setProfil(p);
-      setCandidatures(c);
-      setForm({ nom: p.nom, prenom: p.prenom, telephone: p.telephone, diplome: p.diplome, niveauEtude: p.niveauEtude, experience: p.experience, lettreMotivation: p.lettreMotivation || "" });
-    }).finally(() => {
-      setLoading(false);
-    });
+    ])
+      .then(([p, c]) => {
+        setProfil(p);
+        setCandidatures(c);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
   }, [user]);
-
-  const handleSave = async () => {
-    if (!user) return;
-    setSaving(true);
-    setSaveSuccess(false);
-    setSaveError(false);
-    try {
-      const updated = await api.put<Candidat>(`/candidats/${user.id}`, form);
-      setProfil(updated);
-      setEditing(false);
-      setSaveSuccess(true);
-      setTimeout(() => setSaveSuccess(false), 3000);
-    } catch {
-      setSaveError(true);
-      setTimeout(() => setSaveError(false), 4000);
-    }
-    setSaving(false);
-  };
-
-  const handleCvUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !user) return;
-    if (file.type !== "application/pdf") {
-      setSaveError(true);
-      setTimeout(() => setSaveError(false), 4000);
-      return;
-    }
-    setUploadingCv(true);
-    setSaveSuccess(false);
-    setSaveError(false);
-    try {
-      const fd = new FormData();
-      fd.append("cv", file);
-      const updated = await api.upload<Candidat>(`/candidats/${user.id}/cv`, fd);
-      setProfil(updated);
-      setSaveSuccess(true);
-      setTimeout(() => setSaveSuccess(false), 3000);
-    } catch {
-      setSaveError(true);
-      setTimeout(() => setSaveError(false), 4000);
-    }
-    setUploadingCv(false);
-    e.target.value = "";
-  };
 
   const statusConfig: Record<string, { icon: typeof Clock; variant: "warning" | "success" | "destructive"; label: string }> = {
     en_attente: { icon: Clock, variant: "warning", label: t("candidatureEnAttente") },
@@ -98,9 +72,62 @@ export default function CandidatDashboard() {
     { label: t("acceptees"), value: candidatures.filter((c) => c.statut === "acceptee").length, gradient: "from-emerald-500 to-teal-400", icon: TrendingUp },
   ];
 
+  // Pagination
+  const totalPages = Math.ceil(candidatures.length / CANDIDATURES_PAR_PAGE);
+  const startIndex = (currentPage - 1) * CANDIDATURES_PAR_PAGE;
+  const endIndex = startIndex + CANDIDATURES_PAR_PAGE;
+  const candidaturesPaginees = candidatures.slice(startIndex, endIndex);
+
+  // Pagination pages to display
+  const getPageNumbers = () => {
+    const pages = [];
+    const maxPages = 5;
+    
+    if (totalPages <= maxPages) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      pages.push(1);
+      if (currentPage > 3) pages.push("...");
+      
+      const start = Math.max(2, currentPage - 1);
+      const end = Math.min(totalPages - 1, currentPage + 1);
+      
+      for (let i = start; i <= end; i++) pages.push(i);
+      
+      if (currentPage < totalPages - 2) pages.push("...");
+      pages.push(totalPages);
+    }
+    return pages;
+  };
+
   return (
-    <div className="pt-20 pb-16 min-h-screen bg-gradient-to-b from-muted/40 to-background">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-10">
+    <div className="pb-16 min-h-screen bg-gradient-to-b from-muted/40 to-background">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
+        {/* Profile Completion Alert */}
+        {!isProfileComplete && (
+          <Alert className="mb-8 border-amber-200 bg-amber-50">
+            <AlertCircle className="h-4 w-4 text-amber-600" />
+            <AlertTitle className="text-amber-900">Profil incomplet</AlertTitle>
+            <AlertDescription className="text-amber-800 mt-2">
+              <p className="mb-3">Complétez votre profil pour augmenter vos chances d'être contacté par les recruteurs.</p>
+              <div className="mb-3">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium">{profileCompletion}% complété</span>
+                </div>
+                <div className="w-full bg-amber-200 rounded-full h-2">
+                  <div
+                    className="bg-amber-600 h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${profileCompletion}%` }}
+                  />
+                </div>
+              </div>
+              <Button size="sm" onClick={openProfile} variant="outline" className="border-amber-600 text-amber-900 hover:bg-amber-100">
+                Compléter mon profil
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
+
         {/* Header */}
         <div className="mb-8">
           <h1 className="font-heading text-3xl font-extrabold">
@@ -136,21 +163,7 @@ export default function CandidatDashboard() {
           </div>
         )}
 
-        {/* Save feedback */}
-        {saveSuccess && (
-          <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm font-medium text-emerald-700" role="status">
-            <CheckCircle className="inline size-4 mr-2 align-text-bottom" aria-hidden="true" />
-            {t("profilSauvegarde")}
-          </div>
-        )}
-        {saveError && (
-          <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-700" role="alert">
-            <XCircle className="inline size-4 mr-2 align-text-bottom" aria-hidden="true" />
-            {t("erreurSauvegarde")}
-          </div>
-        )}
-
-        {/* Tabs */}
+        {/* Candidatures Tab */}
         <Tabs defaultValue="candidatures">
           <TabsList>
             <TabsTrigger value="candidatures">
@@ -158,25 +171,31 @@ export default function CandidatDashboard() {
               {t("mesCandidatures")}
               <Badge variant="secondary" className="ml-1">{candidatures.length}</Badge>
             </TabsTrigger>
-            <TabsTrigger value="profil">
-              <User className="size-4" aria-hidden="true" />
-              {t("monProfil")}
-            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="candidatures">
             {loading ? (
               <div className="space-y-3">
                 {Array.from({ length: 3 }).map((_, i) => (
-                  <Card key={i} className="p-4 flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <Skeleton className="size-10 rounded-xl" />
-                      <div>
-                        <Skeleton className="h-4 w-40 mb-2" />
-                        <Skeleton className="h-3 w-28" />
+                  <Card key={i} className="p-4">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-start gap-4 flex-1">
+                        <Skeleton className="size-12 rounded-xl" />
+                        <div className="flex-1">
+                          <Skeleton className="h-5 w-48 mb-2" />
+                          <Skeleton className="h-4 w-32 mb-2" />
+                          <div className="flex items-center gap-3">
+                            <Skeleton className="h-3 w-20" />
+                            <Skeleton className="h-5 w-16 rounded-full" />
+                            <Skeleton className="h-3 w-12" />
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex flex-col items-end gap-2 ml-4">
+                        <Skeleton className="h-6 w-24 rounded-full" />
+                        <Skeleton className="h-8 w-20" />
                       </div>
                     </div>
-                    <Skeleton className="h-6 w-24 rounded-full" />
                   </Card>
                 ))}
               </div>
@@ -194,160 +213,119 @@ export default function CandidatDashboard() {
                     </Button>
                   </Card>
                 ) : (
-                  candidatures.map((c) => {
+                  candidaturesPaginees.map((c) => {
                     const status = statusConfig[c.statut] || statusConfig.en_attente;
                     const StatusIcon = status.icon;
                     return (
-                      <Card key={c.id} className="p-4 flex items-center justify-between hover:shadow-md hover:shadow-black/[0.03] transition-all">
-                        <div className="flex items-center gap-4">
-                          <div className="size-10 rounded-xl bg-muted flex items-center justify-center shrink-0">
-                            <FileText className="size-4 text-muted-foreground" aria-hidden="true" />
+                      <Card key={c.id} className="p-4 hover:shadow-md hover:shadow-black/[0.03] transition-all group">
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-start gap-4 flex-1">
+                            <div className="size-12 rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                              <FileText className="size-5 text-primary" aria-hidden="true" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-semibold text-foreground line-clamp-1 group-hover:text-primary transition-colors">
+                                {c.offreTitre || `Candidature #${c.id}`}
+                              </h3>
+                              <p className="text-sm text-muted-foreground mt-0.5">
+                                {c.nomEntreprise && (
+                                  <span className="font-medium text-foreground">{c.nomEntreprise}</span>
+                                )}
+                                {c.nomEntreprise && c.ville && <span className="mx-1.5">•</span>}
+                                {c.ville && <span>{c.ville}</span>}
+                              </p>
+                              <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
+                                <span className="flex items-center gap-1">
+                                  <Clock className="size-3.5" />
+                                  {new Date(c.datePostulation).toLocaleDateString("fr-FR", {
+                                    day: "numeric",
+                                    month: "short",
+                                    year: "numeric",
+                                  })}
+                                </span>
+                                {c.typeContrat && (
+                                  <Badge variant="outline" className="text-xs px-2 py-0.5 h-auto">
+                                    {c.typeContrat}
+                                  </Badge>
+                                )}
+                                {c.salaire && (
+                                  <span className="font-medium text-foreground">
+                                    {c.salaire}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
                           </div>
-                          <div>
-                            <p className="font-semibold">Candidature #{c.id}</p>
-                            <p className="text-sm text-muted-foreground mt-0.5">
-                              {new Date(c.datePostulation).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}
-                            </p>
+                          <div className="flex flex-col items-end gap-2 ml-4">
+                            <Badge variant={status.variant} className="gap-1.5 whitespace-nowrap">
+                              <StatusIcon className="size-3.5" aria-hidden="true" />
+                              {status.label}
+                            </Badge>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              asChild
+                              className="h-8 px-3 text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <Link to={`/offres/${c.offreEmploiId}`}>
+                                Voir l'offre
+                              </Link>
+                            </Button>
                           </div>
                         </div>
-                        <Badge variant={status.variant} className="gap-1.5">
-                          <StatusIcon className="size-3.5" aria-hidden="true" />
-                          {status.label}
-                        </Badge>
                       </Card>
                     );
                   })
                 )}
               </div>
             )}
-          </TabsContent>
 
-          <TabsContent value="profil">
-            {loading ? (
-              <Card>
-                <CardContent className="p-8">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                    {Array.from({ length: 7 }).map((_, i) => (
-                      <div key={i}>
-                        <Skeleton className="h-3 w-20 mb-2" />
-                        <Skeleton className="h-5 w-44" />
-                      </div>
-                    ))}
-                  </div>
-                  <Skeleton className="h-10 w-40 mt-8" />
-                </CardContent>
-              </Card>
-            ) : profil && (
-              <Card>
-                <CardContent className="p-8">
-                  {!editing ? (
-                    <>
-                      <h2 className="font-heading text-xl font-bold mb-6">{t("infoPersonnelles")}</h2>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                        {[
-                          [t("nom"), profil.nom],
-                          [t("prenom"), profil.prenom],
-                          [t("email"), profil.email],
-                          [t("telephone"), profil.telephone],
-                          [t("diplome"), profil.diplome],
-                          [t("niveauEtude"), profil.niveauEtude],
-                          [t("experience"), profil.experience],
-                        ].map(([label, value]) => (
-                          <div key={label}>
-                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">{label}</p>
-                            <p className="font-medium text-base">{value || "\u2014"}</p>
-                          </div>
-                        ))}
-                        <div className="sm:col-span-2">
-                          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">{t("lettreMotivation")}</p>
-                          <p className="font-medium text-sm whitespace-pre-line text-muted-foreground">{profil.lettreMotivation || "\u2014"}</p>
-                        </div>
-                      </div>
-                      {/* CV Section */}
-                      <div className="mt-8 p-5 rounded-xl border border-border bg-muted/30">
-                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">{t("monCv")}</p>
-                        {profil.cv ? (
-                          <div className="flex items-center gap-3 mb-3">
-                            <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                              <File className="size-4 text-primary" aria-hidden="true" />
-                            </div>
-                            <a
-                              href={profil.cv}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-sm font-medium text-primary hover:underline truncate"
-                            >
-                              {t("voirCv")}
-                            </a>
-                          </div>
-                        ) : (
-                          <p className="text-sm text-muted-foreground mb-3">{t("aucunCv")}</p>
-                        )}
-                        <label className="inline-flex items-center gap-2 cursor-pointer">
-                          <Button size="sm" variant="outline" asChild disabled={uploadingCv}>
-                            <span>
-                              <Upload className="size-3.5" aria-hidden="true" />
-                              {uploadingCv ? t("envoi") : profil.cv ? t("remplacerCv") : t("ajouterCv")}
-                            </span>
-                          </Button>
-                          <input
-                            type="file"
-                            accept="application/pdf"
-                            className="sr-only"
-                            onChange={handleCvUpload}
-                            disabled={uploadingCv}
-                          />
-                        </label>
-                      </div>
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-2 mt-8">
+                {/* Previous button */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                  disabled={currentPage === 1}
+                  className="font-semibold"
+                >
+                  <ChevronLeft className="size-4 mr-1" aria-hidden="true" />
+                  Précédent
+                </Button>
 
-                      <Button onClick={() => setEditing(true)} className="mt-6" aria-label={t("modifierProfil")}>
-                        <Pencil className="size-4" aria-hidden="true" />
-                        {t("modifierProfil")}
+                {/* Page numbers */}
+                <div className="flex items-center gap-1">
+                  {getPageNumbers().map((page, idx) => (
+                    page === "..." ? (
+                      <span key={`dots-${idx}`} className="px-2 text-muted-foreground font-bold">…</span>
+                    ) : (
+                      <Button
+                        key={page}
+                        variant={currentPage === page ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setCurrentPage(page as number)}
+                        className={`w-10 h-10 font-bold ${currentPage === page ? "bg-primary hover:bg-primary/90" : ""}`}
+                      >
+                        {page}
                       </Button>
-                    </>
-                  ) : (
-                    <div className="space-y-4 animate-scale-in">
-                      <h2 className="font-heading text-xl font-bold mb-4">{t("modifierProfil")}</h2>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        {[
-                          { id: "e-nom", label: t("nom"), key: "nom" as const, autoComplete: "family-name" },
-                          { id: "e-prenom", label: t("prenom"), key: "prenom" as const, autoComplete: "given-name" },
-                          { id: "e-tel", label: t("telephone"), key: "telephone" as const, autoComplete: "tel" },
-                          { id: "e-diplome", label: t("diplome"), key: "diplome" as const, autoComplete: "off" },
-                          { id: "e-niveau", label: t("niveauEtude"), key: "niveauEtude" as const, autoComplete: "off" },
-                          { id: "e-exp", label: t("experience"), key: "experience" as const, autoComplete: "off" },
-                        ].map((f) => (
-                          <div key={f.id} className="space-y-2">
-                            <Label htmlFor={f.id}>{f.label}</Label>
-                            <Input
-                              id={f.id}
-                              value={form[f.key]}
-                              onChange={(e) => setForm({ ...form, [f.key]: e.target.value })}
-                              autoComplete={f.autoComplete}
-                            />
-                          </div>
-                        ))}
-                        <div className="sm:col-span-2 space-y-2">
-                          <Label htmlFor="e-lettre">{t("lettreMotivation")}</Label>
-                          <Textarea
-                            id="e-lettre"
-                            rows={4}
-                            value={form.lettreMotivation}
-                            onChange={(e) => setForm({ ...form, lettreMotivation: e.target.value })}
-                            placeholder={t("presentezBrievement")}
-                          />
-                        </div>
-                      </div>
-                      <div className="flex gap-3 pt-3">
-                        <Button variant="outline" onClick={() => setEditing(false)}>{t("annuler")}</Button>
-                        <Button onClick={handleSave} disabled={saving}>
-                          {saving ? t("sauvegarde") : t("sauvegarder")}
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+                    )
+                  ))}
+                </div>
+
+                {/* Next button */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                  disabled={currentPage === totalPages}
+                  className="font-semibold"
+                >
+                  Suivant
+                  <ChevronRight className="size-4 ml-1" aria-hidden="true" />
+                </Button>
+              </div>
             )}
           </TabsContent>
         </Tabs>

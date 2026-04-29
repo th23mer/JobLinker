@@ -149,9 +149,9 @@ export default function Login() {
 
           {/* Role tabs */}
           <Tabs value={role} onValueChange={(v) => setRole(v as Role)} className="mb-8">
-            <TabsList>
-              <TabsTrigger value="candidat">Candidat</TabsTrigger>
-              <TabsTrigger value="recruteur">Recruteur</TabsTrigger>
+            <TabsList aria-label="Type de compte">
+              <TabsTrigger value="candidat" className="data-[state=active]:ring-2 data-[state=active]:ring-primary/50 data-[state=active]:ring-offset-1">Candidat</TabsTrigger>
+              <TabsTrigger value="recruteur" className="data-[state=active]:ring-2 data-[state=active]:ring-primary/50 data-[state=active]:ring-offset-1">Recruteur</TabsTrigger>
             </TabsList>
           </Tabs>
 

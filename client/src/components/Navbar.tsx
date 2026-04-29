@@ -3,6 +3,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { useTranslation } from "@/hooks/useTranslation";
 import { useProfileModal } from "@/context/ProfileModalContext";
+import { useCandidatProfileModal } from "@/context/CandidatProfileModalContext";
 import { Link2, LogOut, LayoutDashboard, Menu, Sparkles, Globe, User } from "lucide-react";
 import { api } from "@/services/api";
 import type { Recruteur, Candidat } from "@/types";
@@ -19,6 +20,7 @@ export default function Navbar() {
   const { setLanguage } = useLanguage();
   const { language, t } = useTranslation();
   const { openProfile } = useProfileModal();
+  const { openProfile: openCandidatProfile } = useCandidatProfileModal();
   const navigate = useNavigate();
   const location = useLocation();
   const [scrolled, setScrolled] = useState(false);
@@ -27,6 +29,15 @@ export default function Navbar() {
   const [profileName, setProfileName] = useState<string | null>(null);
 
   const displayName = profileName ?? (user?.role === "admin" ? "Administrateur" : "Utilisateur");
+
+  const handleProfileClick = () => {
+    setAvatarOpen(false);
+    if (user?.role === "recruteur") {
+      openProfile();
+    } else if (user?.role === "candidat") {
+      openCandidatProfile();
+    }
+  };
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -191,11 +202,11 @@ export default function Navbar() {
                           <p className="truncate text-[11px] uppercase tracking-wider text-muted-foreground/70">{user?.role}</p>
                         </div>
                       </div>
-                      {user?.role === "recruteur" && (
+                      {(user?.role === "recruteur" || user?.role === "candidat") && (
                         <button
                           type="button"
                           className="w-full flex items-center gap-2 text-left px-4 py-2.5 text-sm text-foreground hover:bg-muted/30"
-                          onClick={() => { setAvatarOpen(false); openProfile(); }}
+                          onClick={handleProfileClick}
                         >
                           <User className="size-4 text-muted-foreground/80" />
                           <span>Mon profil</span>
@@ -285,6 +296,16 @@ export default function Navbar() {
                         {t("nav.dashboard")}
                       </Link>
                     </Button>
+                    {(user?.role === "recruteur" || user?.role === "candidat") && (
+                      <Button
+                        variant="ghost"
+                        className="justify-start h-12 text-base"
+                        onClick={() => { setMobileOpen(false); handleProfileClick(); }}
+                      >
+                        <User className="size-4" />
+                        Mon profil
+                      </Button>
+                    )}
                     <Separator className="my-3" />
                     <Button
                       variant="ghost"

@@ -38,6 +38,7 @@ export interface IRecruteurService {
   register(data: Omit<Recruteur, "id" | "statutValidation">): Promise<Recruteur>;
   updateProfil(id: number, data: Partial<Omit<Recruteur, "id" | "motDePasse">>): Promise<Recruteur>;
   valider(id: number): Promise<Recruteur>;
+  search(filters: { q?: string; statutValidation?: string }): Promise<Recruteur[]>;
 }
 
 export interface IOffreEmploiService {
@@ -46,7 +47,7 @@ export interface IOffreEmploiService {
   getById(id: number): Promise<OffreEmploi>;
   getByRecruteurId(recruteurId: number): Promise<OffreEmploi[]>;
   search(titre: string): Promise<OffreEmploi[]>;
-  searchAdvanced(filters: Partial<Pick<OffreEmploi, "categorieId" | "specialiteId" | "typeContrat" | "ville" | "niveauEtude" | "experienceRequise">>): Promise<OffreEmploi[]>;
+  searchAdvanced(filters: { categorieId?: number; specialiteId?: number; typeContrat?: string; ville?: string; niveauEtude?: string; experienceRequise?: string; q?: string; statutValidation?: string }): Promise<OffreEmploi[]>;
   create(data: Omit<OffreEmploi, "id" | "statutValidation">): Promise<OffreEmploi>;
   update(id: number, data: Partial<Omit<OffreEmploi, "id">>): Promise<OffreEmploi>;
   delete(id: number): Promise<void>;

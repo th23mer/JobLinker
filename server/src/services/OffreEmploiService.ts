@@ -32,7 +32,7 @@ export class OffreEmploiService implements IOffreEmploiService {
   }
 
   async searchAdvanced(
-    filters: Partial<Pick<OffreEmploi, "categorieId" | "specialiteId" | "typeContrat" | "ville" | "niveauEtude" | "experienceRequise">>
+    filters: { categorieId?: number; specialiteId?: number; typeContrat?: string; ville?: string; niveauEtude?: string; experienceRequise?: string; q?: string; statutValidation?: string }
   ): Promise<OffreEmploi[]> {
     return this.repo.searchAdvanced(filters);
   }

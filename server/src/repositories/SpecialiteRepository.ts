@@ -29,6 +29,15 @@ export class SpecialiteRepository implements ISpecialiteRepository {
   }
 
   async create(nom: string, categorieId: number): Promise<Specialite> {
+    // Check if specialite with same name already exists in the same categorie
+    const existing = await this.pool.query(
+      "SELECT id FROM specialite WHERE nom = $1 AND categorie_id = $2",
+      [nom, categorieId]
+    );
+    if (existing.rows.length > 0) {
+      throw new Error("Une spécialité avec ce nom existe déjà dans cette catégorie");
+    }
+    
     const { rows } = await this.pool.query(
       "INSERT INTO specialite (nom, categorie_id) VALUES ($1, $2) RETURNING id, nom, categorie_id AS \"categorieId\"",
       [nom, categorieId]

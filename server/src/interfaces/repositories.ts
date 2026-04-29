@@ -40,6 +40,7 @@ export interface IRecruteurRepository {
   create(data: Omit<Recruteur, "id" | "statutValidation">): Promise<Recruteur>;
   update(id: number, data: Partial<Omit<Recruteur, "id" | "motDePasse">>): Promise<Recruteur | null>;
   updateStatut(id: number, statut: string): Promise<Recruteur | null>;
+  search(filters: { q?: string; statutValidation?: string }): Promise<Recruteur[]>;
 }
 
 export interface IOffreEmploiRepository {
@@ -48,7 +49,7 @@ export interface IOffreEmploiRepository {
   findById(id: number): Promise<OffreEmploi | null>;
   findByRecruteurId(recruteurId: number): Promise<OffreEmploi[]>;
   search(titre: string): Promise<OffreEmploi[]>;
-  searchAdvanced(filters: Partial<Pick<OffreEmploi, "categorieId" | "specialiteId" | "typeContrat" | "ville" | "niveauEtude" | "experienceRequise">>): Promise<OffreEmploi[]>;
+  searchAdvanced(filters: { categorieId?: number; specialiteId?: number; typeContrat?: string; ville?: string; niveauEtude?: string; experienceRequise?: string; q?: string; statutValidation?: string }): Promise<OffreEmploi[]>;
   create(data: Omit<OffreEmploi, "id" | "statutValidation">): Promise<OffreEmploi>;
   update(id: number, data: Partial<Omit<OffreEmploi, "id">>): Promise<OffreEmploi | null>;
   delete(id: number): Promise<boolean>;

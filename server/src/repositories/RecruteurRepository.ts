@@ -82,4 +82,25 @@ export class RecruteurRepository implements IRecruteurRepository {
     );
     return rows[0] || null;
   }
+
+  async search(filters: { q?: string; statutValidation?: string }): Promise<Recruteur[]> {
+    let query = `SELECT ${SELECT_COLS} FROM recruteur WHERE 1=1`;
+    const values: unknown[] = [];
+    let idx = 1;
+
+    if (filters.q) {
+      query += ` AND (nom_entreprise ILIKE $${idx} OR nom_representant ILIKE $${idx} OR prenom_representant ILIKE $${idx} OR email ILIKE $${idx} OR telephone ILIKE $${idx})`;
+      values.push(`%${filters.q}%`);
+      idx++;
+    }
+    if (filters.statutValidation) {
+      query += ` AND statut_validation = $${idx}`;
+      values.push(filters.statutValidation);
+      idx++;
+    }
+
+    query += " ORDER BY id";
+    const { rows } = await this.pool.query(query, values);
+    return rows;
+  }
 }

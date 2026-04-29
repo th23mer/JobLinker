@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { api } from "@/services/api";
 import { useAuth } from "@/context/AuthContext";
-import type { OffreEmploi, Candidat } from "@/types";
+import type { OffreEmploi, Candidat, AuthPayload } from "@/types";
 import { ArrowLeft, MapPin, Briefcase, GraduationCap, Send, CheckCircle, Sparkles, File, Upload, Zap, Eye, Users, ChevronRight, Calendar, DollarSign, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -11,22 +11,52 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 
 export default function OffreDetail() {
   const { id } = useParams<{ id: string }>();
-  const { user } = useAuth();
+  const { user, login } = useAuth();
   const navigate = useNavigate();
   const [offre, setOffre] = useState<OffreEmploi | null>(null);
   const [loading, setLoading] = useState(true);
   const [showPostuler, setShowPostuler] = useState(false);
   const [cvMode, setCvMode] = useState<"default" | "new">("default");
-  const [cvFile, setCvFile] = useState<File | null>(null);
+  const [cvFile, setCvFile] = useState<any>(null);
   const [lettreMotivation, setLettreMotivation] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState("");
   const [error, setError] = useState("");
   const [profil, setProfil] = useState<Candidat | null>(null);
   const [showCelebrate, setShowCelebrate] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+  const [loginLoading, setLoginLoading] = useState(false);
+  const [loginError, setLoginError] = useState("");
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoginLoading(true);
+    setLoginError("");
+
+    try {
+      const result = await api.post<{ token: string; role: string }>("/auth/candidat", {
+        email: loginEmail,
+        motDePasse: loginPassword,
+      });
+
+      login(result.token, result.role as AuthPayload["role"]);
+      setShowAuthModal(false);
+      setLoginEmail("");
+      setLoginPassword("");
+      // L'utilisateur est maintenant connecté, il peut postuler directement
+    } catch (err) {
+      setLoginError(err instanceof Error ? err.message : "Erreur de connexion");
+    } finally {
+      setLoginLoading(false);
+    }
+  };
 
   useEffect(() => {
     api.get<OffreEmploi>(`/offres/${id}`)
@@ -237,6 +267,197 @@ export default function OffreDetail() {
                 </CardHeader>
               </Card>
 
+              {/* Application CTA */}
+              {!success && (
+                <Card className="border-2 border-primary/25 bg-gradient-to-br from-primary/5 via-background to-primary/10 shadow-sm">
+                  <CardContent className="p-5 sm:p-6">
+                    {user?.role === "candidat" ? (
+                      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                          <h2 className="font-heading text-xl font-bold text-foreground">Postuler a cette offre</h2>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            Envoyez votre CV et votre lettre de motivation au recruteur.
+                          </p>
+                        </div>
+                        <Button
+                          size="lg"
+                          variant="success"
+                          className="h-12 font-bold"
+                          onClick={() => setShowPostuler(true)}
+                          disabled={showPostuler}
+                        >
+                          <Send className="size-5 mr-2" aria-hidden="true" />
+                          {showPostuler ? "Formulaire ouvert" : "Postuler maintenant"}
+                        </Button>
+                      </div>
+                    ) : !user ? (
+                      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                          <h2 className="font-heading text-xl font-bold text-foreground">Postuler à cette offre</h2>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            Envoyez votre CV et votre lettre de motivation au recruteur.
+                          </p>
+                        </div>
+                        <Button
+                          size="lg"
+                          variant="success"
+                          className="h-12 font-bold"
+                          onClick={() => setShowAuthModal(true)}
+                        >
+                          <Send className="size-5 mr-2" aria-hidden="true" />
+                          Postuler maintenant
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                          <h2 className="font-heading text-xl font-bold text-foreground">Postuler avec un compte candidat</h2>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            Les candidatures sont reservees aux comptes candidats. Connectez-vous avec un compte candidat ou creez-en un.
+                          </p>
+                        </div>
+                        <Button asChild size="lg" variant="outline" className="h-12 font-bold sm:shrink-0">
+                          <Link to="/register?role=candidat">Creer un compte candidat</Link>
+                        </Button>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Success Message */}
+              {success && (
+                <div className="space-y-3">
+                  <Alert variant="success">
+                    <CheckCircle className="size-4" aria-hidden="true" />
+                    <AlertDescription className="font-semibold">{success}</AlertDescription>
+                  </Alert>
+
+                  {showCelebrate && (
+                    <div className="celebrate-wrap" role="status" aria-live="polite" aria-label="Candidature confirmee">
+                      <CheckCircle className="celebrate-check" aria-hidden="true" />
+                      <span className="celebrate-particle celebrate-particle-1" aria-hidden="true" />
+                      <span className="celebrate-particle celebrate-particle-2" aria-hidden="true" />
+                      <span className="celebrate-particle celebrate-particle-3" aria-hidden="true" />
+                      <span className="celebrate-particle celebrate-particle-4" aria-hidden="true" />
+                      <span className="celebrate-particle celebrate-particle-5" aria-hidden="true" />
+                      <span className="celebrate-particle celebrate-particle-6" aria-hidden="true" />
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Error Message */}
+              {error && (
+                <Alert variant="destructive">
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
+
+              {/* Application Form */}
+              {user?.role === "candidat" && showPostuler && !success && (
+                <Card className="border border-primary/20 bg-primary/5">
+                  <CardHeader>
+                    <h2 className="font-heading text-lg font-bold">Envoyez votre candidature</h2>
+                  </CardHeader>
+                  <CardContent>
+                    <form onSubmit={handlePostuler} className="space-y-6">
+                      <div className="space-y-3">
+                        <Label className="text-base font-bold">Votre CV <span className="text-destructive">*</span></Label>
+
+                        {profil?.cv && (
+                          <label className={`flex items-center gap-4 p-4 rounded-xl border cursor-pointer transition-all ${cvMode === "default" ? "border-primary bg-primary/10 shadow-sm" : "border-border hover:border-primary/50"}`}>
+                            <input
+                              type="radio"
+                              name="cvMode"
+                              checked={cvMode === "default"}
+                              onChange={() => setCvMode("default")}
+                              className="accent-primary size-5"
+                            />
+                            <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                              <File className="size-5 text-primary" aria-hidden="true" />
+                            </div>
+                            <div className="flex-1">
+                              <p className="font-semibold text-foreground">Utiliser mon CV enregistre</p>
+                              <a
+                                href={profil.cv}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs text-primary hover:underline font-medium"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                Voir mon CV
+                              </a>
+                            </div>
+                          </label>
+                        )}
+
+                        <label className={`flex items-center gap-4 p-4 rounded-xl border cursor-pointer transition-all ${cvMode === "new" ? "border-primary bg-primary/10 shadow-sm" : "border-border hover:border-primary/50"}`}>
+                          <input
+                            type="radio"
+                            name="cvMode"
+                            checked={cvMode === "new"}
+                            onChange={() => setCvMode("new")}
+                            className="accent-primary size-5"
+                          />
+                          <div className="size-10 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                            <Upload className="size-5 text-muted-foreground" aria-hidden="true" />
+                          </div>
+                          <p className="font-semibold text-foreground">Telecharger un nouveau CV</p>
+                        </label>
+
+                        {cvMode === "new" && (
+                          <div className="pl-4">
+                            <input
+                              type="file"
+                              accept="application/pdf"
+                              onChange={(e) => setCvFile(e.target.files?.[0] || null)}
+                              className="block w-full text-sm text-muted-foreground file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 file:cursor-pointer"
+                            />
+                            {cvFile && (
+                              <p className="text-xs text-muted-foreground mt-3 font-medium">OK {cvFile.name}</p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="lm" className="text-base font-bold">Lettre de motivation <span className="text-destructive">*</span></Label>
+                        <Textarea
+                          id="lm"
+                          required
+                          aria-required="true"
+                          rows={6}
+                          value={lettreMotivation}
+                          onChange={(e) => setLettreMotivation(e.target.value)}
+                          placeholder="Expliquez pourquoi vous etes interesse par ce poste..."
+                          className="font-medium resize-none"
+                        />
+                      </div>
+
+                      <div className="flex gap-3 pt-4">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="flex-1 font-semibold"
+                          onClick={() => setShowPostuler(false)}
+                        >
+                          Annuler
+                        </Button>
+                        <Button
+                          type="submit"
+                          variant="success"
+                          disabled={submitting}
+                          className="flex-1 font-bold h-11"
+                        >
+                          {submitting ? "Envoi en cours..." : "Envoyer ma candidature"}
+                        </Button>
+                      </div>
+                    </form>
+                  </CardContent>
+                </Card>
+              )}
+
               {/* Quick Summary */}
               <Card className="border border-border/50 shadow-sm">
                 <CardHeader className="pb-4">
@@ -300,7 +521,7 @@ export default function OffreDetail() {
               )}
 
               {/* Success Message */}
-              {success && (
+              {false && success && (
                 <div className="space-y-3">
                   <Alert variant="success">
                     <CheckCircle className="size-4" aria-hidden="true" />
@@ -322,14 +543,14 @@ export default function OffreDetail() {
               )}
 
               {/* Error Message */}
-              {error && (
+              {false && error && (
                 <Alert variant="destructive">
                   <AlertDescription>{error}</AlertDescription>
                 </Alert>
               )}
 
               {/* Application Form */}
-              {user?.role === "candidat" && !success && (
+              {false && user?.role === "candidat" && !success && (
                 <>
                   {!showPostuler ? (
                     <Button
@@ -368,7 +589,7 @@ export default function OffreDetail() {
                                 <div className="flex-1">
                                   <p className="font-semibold text-foreground">Utiliser mon CV enregistré</p>
                                   <a
-                                    href={profil.cv}
+                                    href={profil!.cv}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="text-xs text-primary hover:underline font-medium"
@@ -450,44 +671,20 @@ export default function OffreDetail() {
                 </>
               )}
 
-              {/* Login Prompt */}
-              {!user && (
-                <Card className="bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20 text-center py-8">
-                  <div className="space-y-4">
-                    <div className="size-14 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
-                      <Zap className="size-7 text-primary" />
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground font-medium mb-2">
-                        <Link to="/login" className="text-primary hover:underline font-bold">Connectez-vous</Link> pour postuler à cette offre
-                      </p>
-                      <p className="text-xs text-muted-foreground">Vous n'avez pas de compte ? <Link to="/register?role=candidat" className="text-primary hover:underline font-bold">Créez-en un gratuitement</Link></p>
-                    </div>
-                  </div>
-                </Card>
-              )}
             </div>
 
             {/* Sidebar - Sticky */}
             <div className="lg:col-span-1">
               <div className="sticky top-24 space-y-6">
-                {/* Apply Card */}
-                {user?.role === "candidat" && !success && (
+                {user && user.role !== "candidat" && !success && (
                   <Card className="border-2 border-primary/30 bg-gradient-to-br from-primary/5 to-primary/10 shadow-lg">
                     <CardHeader className="pb-4">
-                      <h3 className="font-heading font-bold text-lg text-foreground">Vous intéresse ?</h3>
-                      <p className="text-xs text-muted-foreground font-medium">Postulez maintenant avant que d'autres candidats le fassent !</p>
+                      <h3 className="font-heading font-bold text-lg text-foreground">Compte candidat requis</h3>
+                      <p className="text-xs text-muted-foreground font-medium">Pour postuler, utilisez un compte candidat.</p>
                     </CardHeader>
                     <CardContent>
-                      <Button
-                        size="lg"
-                        variant="success"
-                        className="w-full h-12 font-bold text-base"
-                        onClick={() => setShowPostuler(true)}
-                        disabled={showPostuler}
-                      >
-                        <Send className="size-5 mr-2" />
-                        Postuler
+                      <Button asChild size="lg" variant="outline" className="w-full h-12 font-bold text-base">
+                        <Link to="/register?role=candidat">Créer un compte candidat</Link>
                       </Button>
                     </CardContent>
                   </Card>
@@ -555,6 +752,72 @@ export default function OffreDetail() {
           </div>
         </div>
       </div>
+
+      {/* Auth Modal */}
+      <Dialog open={showAuthModal} onOpenChange={setShowAuthModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Se connecter pour postuler</DialogTitle>
+            <DialogDescription>
+              Connectez-vous avec votre compte candidat pour postuler à cette offre.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="login-email">Email</Label>
+              <Input
+                id="login-email"
+                type="email"
+                value={loginEmail}
+                onChange={(e) => setLoginEmail(e.target.value)}
+                required
+                placeholder="votre.email@example.com"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="login-password">Mot de passe</Label>
+              <Input
+                id="login-password"
+                type="password"
+                value={loginPassword}
+                onChange={(e) => setLoginPassword(e.target.value)}
+                required
+                placeholder="Votre mot de passe"
+              />
+            </div>
+            {loginError && (
+              <Alert variant="destructive">
+                <AlertDescription>{loginError}</AlertDescription>
+              </Alert>
+            )}
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                className="flex-1"
+                onClick={() => setShowAuthModal(false)}
+              >
+                Annuler
+              </Button>
+              <Button type="submit" className="flex-1" disabled={loginLoading}>
+                {loginLoading ? "Connexion..." : "Se connecter"}
+              </Button>
+            </div>
+            <div className="text-center">
+              <p className="text-sm text-muted-foreground">
+                Pas de compte ?{" "}
+                <Link
+                  to="/register?role=candidat"
+                  className="text-primary hover:underline"
+                  onClick={() => setShowAuthModal(false)}
+                >
+                  Créer un compte candidat
+                </Link>
+              </p>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

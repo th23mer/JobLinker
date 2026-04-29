@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { api } from "@/services/api";
 import type { Recruteur, OffreEmploi, Categorie, Specialite } from "@/types";
-import { Shield, Building2, Briefcase, Tag, CheckCircle, Plus, Trash2, Pencil, X, Save, Sparkles, Eye } from "lucide-react";
+import { Shield, Building2, Briefcase, Tag, CheckCircle, Plus, Trash2, Pencil, X, Save, Sparkles, Eye, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,6 +15,11 @@ type ConfirmDelete = {
   id: number;
   label: string;
 };
+
+const RECRUTEURS_PAR_PAGE = 10;
+const OFFRES_PAR_PAGE = 10;
+const CATEGORIES_PAR_PAGE = 10;
+const SPECIALITES_PAR_PAGE = 10;
 
 export default function AdminDashboard() {
   const [recruteurs, setRecruteurs] = useState<Recruteur[]>([]);
@@ -44,6 +49,19 @@ export default function AdminDashboard() {
   const [confirmDelete, setConfirmDelete] = useState<ConfirmDelete | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [detailsOffre, setDetailsOffre] = useState<OffreEmploi | null>(null);
+  const [recruteursCurrentPage, setRecruteursCurrentPage] = useState(1);
+  const [offresCurrentPage, setOffresCurrentPage] = useState(1);
+  const [categoriesCurrentPage, setCategoriesCurrentPage] = useState(1);
+  const [specialitesCurrentPage, setSpecialitesCurrentPage] = useState(1);
+
+  const [recruteursSearch, setRecruteursSearch] = useState("");
+  const [offresSearch, setOffresSearch] = useState("");
+
+  const [recruteursStatusFilter, setRecruteursStatusFilter] = useState<string>("");
+  const [offresStatusFilter, setOffresStatusFilter] = useState<string>("");
+  const [offresCategoryFilter, setOffresCategoryFilter] = useState<string>("");
+  const [offresSpecialiteFilter, setOffresSpecialiteFilter] = useState<string>("");
+  const [specialitesCategoryFilter, setSpecialitesCategoryFilter] = useState<string>("");
 
   const selectClass =
     "flex h-11 w-full rounded-xl border border-border/60 bg-background px-4 py-2 text-sm shadow-sm shadow-black/[0.03] transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary/50";
@@ -83,6 +101,63 @@ export default function AdminDashboard() {
         setLoading(false);
       });
   }, []);
+
+  useEffect(() => {
+    fetchRecruteurs();
+  }, [recruteursSearch, recruteursStatusFilter]);
+
+  useEffect(() => {
+    fetchOffres();
+  }, [offresSearch, offresStatusFilter, offresCategoryFilter, offresSpecialiteFilter]);
+
+  useEffect(() => {
+    setCategoriesCurrentPage(1);
+  }, []);
+
+  useEffect(() => {
+    setSpecialitesCurrentPage(1);
+  }, [specialitesCategoryFilter]);
+
+  const fetchRecruteurs = async () => {
+    try {
+      const params = new URLSearchParams();
+      if (recruteursSearch.trim()) params.append('q', recruteursSearch.trim());
+      if (recruteursStatusFilter) params.append('statutValidation', recruteursStatusFilter);
+      const response = await api.get<Recruteur[]>(`/recruteurs/search?${params.toString()}`);
+      setRecruteurs(response);
+    } catch (error) {
+      console.error('Error fetching recruiters:', error);
+      setRecruteurs([]);
+    }
+  };
+
+  const fetchOffres = async () => {
+    try {
+      const params = new URLSearchParams();
+      if (offresSearch.trim()) params.append('q', offresSearch.trim());
+      if (offresStatusFilter) params.append('statutValidation', offresStatusFilter);
+      if (offresCategoryFilter) params.append('categorieId', offresCategoryFilter);
+      if (offresSpecialiteFilter) params.append('specialiteId', offresSpecialiteFilter);
+      const response = await api.get<OffreEmploi[]>(`/offres/search/advanced?${params.toString()}`);
+      setOffres(response);
+    } catch (error) {
+      console.error('Error fetching offers:', error);
+      setOffres([]);
+    }
+  };
+
+  const filteredRecruteurs = recruteurs; // Since we're fetching filtered data
+
+  const filteredOffres = offres; // Since we're fetching filtered data
+
+  const filteredCategories = categories;
+
+  const filteredSpecialites = specialites.filter((s) => {
+    if (specialitesCategoryFilter && s.categorieId.toString() !== specialitesCategoryFilter) {
+      return false;
+    }
+    return true;
+  });
 
   const validerRecruteur = async (id: number) => {
     setValidatingRecruteurId(id);
@@ -131,17 +206,19 @@ export default function AdminDashboard() {
   };
 
   const createCat = async () => {
-    if (!newCatName.trim()) return;
+    const trimmedName = newCatName.trim();
+    if (!trimmedName) return;
+
     setCreatingCat(true);
     try {
-      const cat = await api.post<Categorie>("/categories", { nom: newCatName });
+      const cat = await api.post<Categorie>("/categories", { nom: trimmedName });
       setCategories([...categories, cat]);
       setNewCatName("");
       showSuccess("Categorie creee avec succes.");
       pushToast("success", "Categorie creee avec succes.");
-    } catch {
+    } catch (error: any) {
       setError("Erreur lors de la creation de la categorie.");
-      pushToast("error", "Impossible de creer la categorie.");
+      pushToast("error", error.response?.data?.message || "Impossible de creer la categorie.");
     } finally {
       setCreatingCat(false);
     }
@@ -181,18 +258,20 @@ export default function AdminDashboard() {
   };
 
   const createSpec = async () => {
-    if (!newSpecName.trim() || !newSpecCatId) return;
+    const trimmedName = newSpecName.trim();
+    if (!trimmedName || !newSpecCatId) return;
+
     setCreatingSpec(true);
     try {
-      const spec = await api.post<Specialite>("/specialites", { nom: newSpecName, categorieId: Number(newSpecCatId) });
+      const spec = await api.post<Specialite>("/specialites", { nom: trimmedName, categorieId: Number(newSpecCatId) });
       setSpecialites([...specialites, spec]);
       setNewSpecName("");
       setNewSpecCatId("");
       showSuccess("Specialite creee avec succes.");
       pushToast("success", "Specialite creee avec succes.");
-    } catch {
+    } catch (error: any) {
       setError("Erreur lors de la creation de la specialite.");
-      pushToast("error", "Impossible de creer la specialite.");
+      pushToast("error", error.response?.data?.message || "Impossible de creer la specialite.");
     } finally {
       setCreatingSpec(false);
     }
@@ -259,6 +338,118 @@ export default function AdminDashboard() {
     { label: "Categories", value: categories.length, gradient: "from-emerald-500 to-teal-400", icon: Tag },
     { label: "Specialites", value: specialites.length, gradient: "from-amber-500 to-orange-400", icon: Sparkles },
   ];
+
+  // Pagination pour les recruteurs
+  const recruteursTotalPages = Math.ceil(filteredRecruteurs.length / RECRUTEURS_PAR_PAGE);
+  const recruteursStartIndex = (recruteursCurrentPage - 1) * RECRUTEURS_PAR_PAGE;
+  const recruteursEndIndex = recruteursStartIndex + RECRUTEURS_PAR_PAGE;
+  const recruteursPaginees = filteredRecruteurs.slice(recruteursStartIndex, recruteursEndIndex);
+
+  // Pagination pages to display pour les recruteurs
+  const getRecruteursPageNumbers = () => {
+    const pages = [];
+    const maxPages = 5;
+    
+    if (recruteursTotalPages <= maxPages) {
+      for (let i = 1; i <= recruteursTotalPages; i++) pages.push(i);
+    } else {
+      pages.push(1);
+      if (recruteursCurrentPage > 3) pages.push("...");
+      
+      const start = Math.max(2, recruteursCurrentPage - 1);
+      const end = Math.min(recruteursTotalPages - 1, recruteursCurrentPage + 1);
+      
+      for (let i = start; i <= end; i++) pages.push(i);
+      
+      if (recruteursCurrentPage < recruteursTotalPages - 2) pages.push("...");
+      pages.push(recruteursTotalPages);
+    }
+    return pages;
+  };
+
+  // Pagination pour les offres
+  const offresTotalPages = Math.ceil(filteredOffres.length / OFFRES_PAR_PAGE);
+  const offresStartIndex = (offresCurrentPage - 1) * OFFRES_PAR_PAGE;
+  const offresEndIndex = offresStartIndex + OFFRES_PAR_PAGE;
+  const offresPaginees = filteredOffres.slice(offresStartIndex, offresEndIndex);
+
+  // Pagination pages to display pour les offres
+  const getOffresPageNumbers = () => {
+    const pages = [];
+    const maxPages = 5;
+    
+    if (offresTotalPages <= maxPages) {
+      for (let i = 1; i <= offresTotalPages; i++) pages.push(i);
+    } else {
+      pages.push(1);
+      if (offresCurrentPage > 3) pages.push("...");
+      
+      const start = Math.max(2, offresCurrentPage - 1);
+      const end = Math.min(offresTotalPages - 1, offresCurrentPage + 1);
+      
+      for (let i = start; i <= end; i++) pages.push(i);
+      
+      if (offresCurrentPage < offresTotalPages - 2) pages.push("...");
+      pages.push(offresTotalPages);
+    }
+    return pages;
+  };
+
+  // Pagination pour les catégories
+  const categoriesTotalPages = Math.ceil(filteredCategories.length / CATEGORIES_PAR_PAGE);
+  const categoriesStartIndex = (categoriesCurrentPage - 1) * CATEGORIES_PAR_PAGE;
+  const categoriesEndIndex = categoriesStartIndex + CATEGORIES_PAR_PAGE;
+  const categoriesPaginees = filteredCategories.slice(categoriesStartIndex, categoriesEndIndex);
+
+  // Pagination pages to display pour les catégories
+  const getCategoriesPageNumbers = () => {
+    const pages = [];
+    const maxPages = 5;
+    
+    if (categoriesTotalPages <= maxPages) {
+      for (let i = 1; i <= categoriesTotalPages; i++) pages.push(i);
+    } else {
+      pages.push(1);
+      if (categoriesCurrentPage > 3) pages.push("...");
+      
+      const start = Math.max(2, categoriesCurrentPage - 1);
+      const end = Math.min(categoriesTotalPages - 1, categoriesCurrentPage + 1);
+      
+      for (let i = start; i <= end; i++) pages.push(i);
+      
+      if (categoriesCurrentPage < categoriesTotalPages - 2) pages.push("...");
+      pages.push(categoriesTotalPages);
+    }
+    return pages;
+  };
+
+  // Pagination pour les spécialites
+  const specialitesTotalPages = Math.ceil(filteredSpecialites.length / SPECIALITES_PAR_PAGE);
+  const specialitesStartIndex = (specialitesCurrentPage - 1) * SPECIALITES_PAR_PAGE;
+  const specialitesEndIndex = specialitesStartIndex + SPECIALITES_PAR_PAGE;
+  const specialitesPaginees = filteredSpecialites.slice(specialitesStartIndex, specialitesEndIndex);
+
+  const getSpecialitesPageNumbers = () => {
+    const pages: Array<number | "..."> = [];
+    const maxPages = 5;
+
+    if (specialitesTotalPages <= maxPages) {
+      for (let i = 1; i <= specialitesTotalPages; i++) pages.push(i);
+    } else {
+      pages.push(1);
+      if (specialitesCurrentPage > 3) pages.push("...");
+
+      const start = Math.max(2, specialitesCurrentPage - 1);
+      const end = Math.min(specialitesTotalPages - 1, specialitesCurrentPage + 1);
+
+      for (let i = start; i <= end; i++) pages.push(i);
+
+      if (specialitesCurrentPage < specialitesTotalPages - 2) pages.push("...");
+      pages.push(specialitesTotalPages);
+    }
+
+    return pages;
+  };
 
   return (
     <div className="pt-20 pb-16 min-h-screen bg-gradient-to-b from-muted/40 to-background">
@@ -366,13 +557,38 @@ export default function AdminDashboard() {
             {/* Recruteurs */}
             <TabsContent value="recruteurs">
               <div className="space-y-4">
+                {/* Search and filters for recruiters */}
+                <Card className="p-4">
+                  <div className="flex flex-col sm:flex-row gap-4">
+                    <div className="flex-1">
+                      <Input
+                        placeholder="Rechercher par nom, email, téléphone..."
+                        value={recruteursSearch}
+                        onChange={(e) => setRecruteursSearch(e.target.value)}
+                        className="w-full"
+                      />
+                    </div>
+                    <div className="sm:w-48">
+                      <select
+                        value={recruteursStatusFilter}
+                        onChange={(e) => setRecruteursStatusFilter(e.target.value)}
+                        className={selectClass}
+                      >
+                        <option value="">Tous les statuts</option>
+                        <option value="en_attente">En attente</option>
+                        <option value="validee">Validé</option>
+                      </select>
+                    </div>
+                  </div>
+                </Card>
+
                 {recruteurs.length === 0 ? (
                   <Card className="p-8 text-center">
                     <Building2 className="size-8 text-muted-foreground mx-auto mb-2" aria-hidden="true" />
                     <p className="text-muted-foreground text-sm">Aucun recruteur pour le moment.</p>
                   </Card>
                 ) : (
-                  recruteurs.map((r) => (
+                  recruteursPaginees.map((r) => (
                     <Card key={r.id} className="p-4 flex items-center justify-between hover:shadow-md hover:shadow-black/[0.03] transition-all">
                       <div className="flex items-center gap-4">
                         <div className="size-12 rounded-2xl bg-gradient-to-br from-blue-500/10 to-cyan-500/10 flex items-center justify-center">
@@ -403,18 +619,121 @@ export default function AdminDashboard() {
                   ))
                 )}
               </div>
+
+              {/* Pagination pour les recruteurs */}
+              {recruteursTotalPages > 1 && (
+                <div className="flex items-center justify-center gap-2 mt-8">
+                  {/* Previous button */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setRecruteursCurrentPage(Math.max(1, recruteursCurrentPage - 1))}
+                    disabled={recruteursCurrentPage === 1}
+                    className="font-semibold"
+                  >
+                    <ChevronLeft className="size-4 mr-1" aria-hidden="true" />
+                    Précédent
+                  </Button>
+
+                  {/* Page numbers */}
+                  <div className="flex items-center gap-1">
+                    {getRecruteursPageNumbers().map((page, idx) => (
+                      page === "..." ? (
+                        <span key={`dots-${idx}`} className="px-2 text-muted-foreground font-bold">…</span>
+                      ) : (
+                        <Button
+                          key={page}
+                          variant={recruteursCurrentPage === page ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setRecruteursCurrentPage(page as number)}
+                          className={`w-10 h-10 font-bold ${recruteursCurrentPage === page ? "bg-primary hover:bg-primary/90" : ""}`}
+                        >
+                          {page}
+                        </Button>
+                      )
+                    ))}
+                  </div>
+
+                  {/* Next button */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setRecruteursCurrentPage(Math.min(recruteursTotalPages, recruteursCurrentPage + 1))}
+                    disabled={recruteursCurrentPage === recruteursTotalPages}
+                    className="font-semibold"
+                  >
+                    Suivant
+                    <ChevronRight className="size-4 ml-1" aria-hidden="true" />
+                  </Button>
+                </div>
+              )}
             </TabsContent>
 
             {/* Offres */}
             <TabsContent value="offres">
               <div className="space-y-4">
+                {/* Search and filters for offers */}
+                <Card className="p-4">
+                  <div className="flex flex-col sm:flex-row gap-4">
+                    <div className="flex-1">
+                      <Input
+                        placeholder="Rechercher par titre, société..."
+                        value={offresSearch}
+                        onChange={(e) => setOffresSearch(e.target.value)}
+                        className="w-full"
+                      />
+                    </div>
+                    <div className="sm:w-48">
+                      <select
+                        value={offresStatusFilter}
+                        onChange={(e) => setOffresStatusFilter(e.target.value)}
+                        className={selectClass}
+                      >
+                        <option value="">Tous les statuts</option>
+                        <option value="en_attente">En attente</option>
+                        <option value="validee">Validée</option>
+                      </select>
+                    </div>
+                    <div className="sm:w-48">
+                      <select
+                        value={offresCategoryFilter}
+                        onChange={(e) => setOffresCategoryFilter(e.target.value)}
+                        className={selectClass}
+                      >
+                        <option value="">Toutes les catégories</option>
+                        {categories.map((cat) => (
+                          <option key={cat.id} value={cat.id.toString()}>
+                            {cat.nom}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="sm:w-48">
+                      <select
+                        value={offresSpecialiteFilter}
+                        onChange={(e) => setOffresSpecialiteFilter(e.target.value)}
+                        className={selectClass}
+                      >
+                        <option value="">Toutes les spécialités</option>
+                        {specialites
+                          .filter((spec) => !offresCategoryFilter || spec.categorieId.toString() === offresCategoryFilter)
+                          .map((spec) => (
+                            <option key={spec.id} value={spec.id.toString()}>
+                              {spec.nom}
+                            </option>
+                          ))}
+                      </select>
+                    </div>
+                  </div>
+                </Card>
+
                 {offres.length === 0 ? (
                   <Card className="p-8 text-center">
                     <Briefcase className="size-8 text-muted-foreground mx-auto mb-2" aria-hidden="true" />
                     <p className="text-muted-foreground text-sm">Aucune offre pour le moment.</p>
                   </Card>
                 ) : (
-                  offres.map((o) => (
+                  offresPaginees.map((o) => (
                     <Card key={o.id} className="p-4 flex items-center justify-between hover:shadow-md hover:shadow-black/[0.03] transition-all">
                       <div className="flex items-center gap-4">
                         <div className="size-11 rounded-2xl bg-gradient-to-br from-violet-500/10 to-purple-500/10 flex items-center justify-center">
@@ -427,7 +746,7 @@ export default function AdminDashboard() {
                               {o.statutValidation === "en_attente" ? "En attente" : "Validee"}
                             </Badge>
                           </div>
-                          <p className="text-sm text-muted-foreground mt-0.5">{o.ville} &middot; {o.typeContrat}</p>
+                          <p className="text-sm text-muted-foreground mt-0.5">{o.nomEntreprise ? `${o.nomEntreprise} • ` : ""}{o.ville} &middot; {o.typeContrat}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
@@ -466,6 +785,54 @@ export default function AdminDashboard() {
                   ))
                 )}
               </div>
+
+              {/* Pagination pour les offres */}
+              {offresTotalPages > 1 && (
+                <div className="flex items-center justify-center gap-2 mt-8">
+                  {/* Previous button */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setOffresCurrentPage(Math.max(1, offresCurrentPage - 1))}
+                    disabled={offresCurrentPage === 1}
+                    className="font-semibold"
+                  >
+                    <ChevronLeft className="size-4 mr-1" aria-hidden="true" />
+                    Précédent
+                  </Button>
+
+                  {/* Page numbers */}
+                  <div className="flex items-center gap-1">
+                    {getOffresPageNumbers().map((page, idx) => (
+                      page === "..." ? (
+                        <span key={`dots-${idx}`} className="px-2 text-muted-foreground font-bold">…</span>
+                      ) : (
+                        <Button
+                          key={page}
+                          variant={offresCurrentPage === page ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setOffresCurrentPage(page as number)}
+                          className={`w-10 h-10 font-bold ${offresCurrentPage === page ? "bg-primary hover:bg-primary/90" : ""}`}
+                        >
+                          {page}
+                        </Button>
+                      )
+                    ))}
+                  </div>
+
+                  {/* Next button */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setOffresCurrentPage(Math.min(offresTotalPages, offresCurrentPage + 1))}
+                    disabled={offresCurrentPage === offresTotalPages}
+                    className="font-semibold"
+                  >
+                    Suivant
+                    <ChevronRight className="size-4 ml-1" aria-hidden="true" />
+                  </Button>
+                </div>
+              )}
             </TabsContent>
 
             {/* Categories */}
@@ -494,7 +861,7 @@ export default function AdminDashboard() {
                           <p className="text-muted-foreground text-sm">Aucune categorie pour le moment.</p>
                         </div>
                       ) : (
-                        categories.map((c) => (
+                        categoriesPaginees.map((c) => (
                           <div key={c.id} className="flex items-center justify-between px-4 py-3 rounded-xl bg-muted/30 border border-border/40 group hover:border-border/80 transition-all">
                             {editingCat?.id === c.id ? (
                               <div className="flex items-center gap-2 flex-1">
@@ -544,12 +911,73 @@ export default function AdminDashboard() {
                         ))
                       )}
                     </div>
+
+                    {/* Pagination pour les catégories */}
+                    {categoriesTotalPages > 1 && (
+                      <div className="flex items-center justify-center gap-2 mt-6">
+                        {/* Previous button */}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setCategoriesCurrentPage(Math.max(1, categoriesCurrentPage - 1))}
+                          disabled={categoriesCurrentPage === 1}
+                          className="font-semibold"
+                        >
+                          <ChevronLeft className="size-4 mr-1" aria-hidden="true" />
+                          Précédent
+                        </Button>
+
+                        {/* Page numbers */}
+                        <div className="flex items-center gap-1">
+                          {getCategoriesPageNumbers().map((page, idx) => (
+                            page === "..." ? (
+                              <span key={`dots-${idx}`} className="px-2 text-muted-foreground font-bold">…</span>
+                            ) : (
+                              <Button
+                                key={page}
+                                variant={categoriesCurrentPage === page ? "default" : "outline"}
+                                size="sm"
+                                onClick={() => setCategoriesCurrentPage(page as number)}
+                                className={`w-10 h-10 font-bold ${categoriesCurrentPage === page ? "bg-primary hover:bg-primary/90" : ""}`}
+                              >
+                                {page}
+                              </Button>
+                            )
+                          ))}
+                        </div>
+
+                        {/* Next button */}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setCategoriesCurrentPage(Math.min(categoriesTotalPages, categoriesCurrentPage + 1))}
+                          disabled={categoriesCurrentPage === categoriesTotalPages}
+                          className="font-semibold"
+                        >
+                          Suivant
+                          <ChevronRight className="size-4 ml-1" aria-hidden="true" />
+                        </Button>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
 
                 <Card>
                   <CardHeader><CardTitle><h2 className="text-lg font-semibold">Specialites</h2></CardTitle></CardHeader>
                   <CardContent>
+                    {/* Filtre par catégorie */}
+                    <div className="flex gap-2 mb-4">
+                      <select
+                        value={specialitesCategoryFilter}
+                        onChange={(e) => setSpecialitesCategoryFilter(e.target.value)}
+                        className={`${selectClass} max-w-[200px]`}
+                        aria-label="Filtrer par categorie"
+                      >
+                        <option value="">Toutes les catégories</option>
+                        {categories.map((c) => <option key={c.id} value={c.id}>{c.nom}</option>)}
+                      </select>
+                    </div>
+
                     <div className="flex gap-2 mb-4">
                       <select
                         value={newSpecCatId}
@@ -579,13 +1007,13 @@ export default function AdminDashboard() {
                           <p className="text-muted-foreground text-sm">Aucune specialite pour le moment.</p>
                         </div>
                       ) : (
-                        specialites.map((s) => (
+                        specialitesPaginees.map((s) => (
                           <div key={s.id} className="flex items-center justify-between px-4 py-3 rounded-xl bg-muted/30 border border-border/40 group hover:border-border/80 transition-all">
                             {editingSpec?.id === s.id ? (
                               <div className="flex items-center gap-2 flex-1">
                                 <Input
                                   value={editingSpec.nom}
-                                  onChange={(e) => setEditingSpec({ ...editingSpec, nom: e.target.value })}
+                                  onChange={(e) => setEditingSpec((prev) => (prev ? { ...prev, nom: e.target.value } : prev))}
                                   className="h-9"
                                   onKeyDown={(e) => e.key === "Enter" && updateSpec()}
                                   aria-label="Modifier le nom de la specialite"
@@ -632,6 +1060,51 @@ export default function AdminDashboard() {
                         ))
                       )}
                     </div>
+
+                    {/* Pagination pour les specialites */}
+                    {specialitesTotalPages > 1 && (
+                      <div className="flex items-center justify-center gap-2 mt-6">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setSpecialitesCurrentPage(Math.max(1, specialitesCurrentPage - 1))}
+                          disabled={specialitesCurrentPage === 1}
+                          className="font-semibold"
+                        >
+                          <ChevronLeft className="size-4 mr-1" aria-hidden="true" />
+                          Précédent
+                        </Button>
+
+                        <div className="flex items-center gap-1">
+                          {getSpecialitesPageNumbers().map((page, idx) => (
+                            page === "..." ? (
+                              <span key={`dots-${idx}`} className="px-2 text-muted-foreground font-bold">…</span>
+                            ) : (
+                              <Button
+                                key={page}
+                                variant={specialitesCurrentPage === page ? "default" : "outline"}
+                                size="sm"
+                                onClick={() => setSpecialitesCurrentPage(page as number)}
+                                className={`w-10 h-10 font-bold ${specialitesCurrentPage === page ? "bg-primary hover:bg-primary/90" : ""}`}
+                              >
+                                {page}
+                              </Button>
+                            )
+                          ))}
+                        </div>
+
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setSpecialitesCurrentPage(Math.min(specialitesTotalPages, specialitesCurrentPage + 1))}
+                          disabled={specialitesCurrentPage === specialitesTotalPages}
+                          className="font-semibold"
+                        >
+                          Suivant
+                          <ChevronRight className="size-4 ml-1" aria-hidden="true" />
+                        </Button>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </div>

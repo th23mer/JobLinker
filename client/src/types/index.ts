@@ -67,6 +67,11 @@ export interface Candidature {
   lettreMotivation: string;
   candidatId: number;
   offreEmploiId: number;
+  offreTitre?: string;
+  nomEntreprise?: string;
+  ville?: string;
+  typeContrat?: string;
+  salaire?: string;
 }
 
 export interface CandidatureWithCandidat extends Candidature {

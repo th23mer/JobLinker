@@ -36,4 +36,8 @@ export class RecruteurService implements IRecruteurService {
     if (!rec) throw new NotFoundError("Recruteur");
     return rec;
   }
+
+  async search(filters: { q?: string; statutValidation?: string }): Promise<Recruteur[]> {
+    return this.repo.search(filters);
+  }
 }

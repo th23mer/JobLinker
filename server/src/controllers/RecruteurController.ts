@@ -38,4 +38,15 @@ export class RecruteurController {
       res.json(rec);
     } catch (err) { next(err); }
   };
+
+  search = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const filters: { q?: string; statutValidation?: string } = {};
+      const { q, statutValidation } = req.query;
+      if (q) filters.q = q as string;
+      if (statutValidation) filters.statutValidation = statutValidation as string;
+      const list = await this.service.search(filters);
+      res.json(list);
+    } catch (err) { next(err); }
+  };
 }

@@ -42,13 +42,15 @@ export class OffreEmploiController {
   searchAdvanced = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const filters: Record<string, unknown> = {};
-      const { categorieId, specialiteId, typeContrat, ville, niveauEtude, experienceRequise } = req.query;
+      const { q, categorieId, specialiteId, typeContrat, ville, niveauEtude, experienceRequise, statutValidation } = req.query;
+      if (q) filters.q = q;
       if (categorieId) filters.categorieId = Number(categorieId);
       if (specialiteId) filters.specialiteId = Number(specialiteId);
       if (typeContrat) filters.typeContrat = typeContrat;
       if (ville) filters.ville = ville;
       if (niveauEtude) filters.niveauEtude = niveauEtude;
       if (experienceRequise) filters.experienceRequise = experienceRequise;
+      if (statutValidation) filters.statutValidation = statutValidation;
       const list = await this.service.searchAdvanced(filters);
       res.json(list);
     } catch (err) { next(err); }
