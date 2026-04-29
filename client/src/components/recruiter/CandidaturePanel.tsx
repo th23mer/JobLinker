@@ -1,11 +1,13 @@
+import { useState } from "react";
 import {
   CheckCircle, XCircle, Mail, Phone,
-  GraduationCap, Briefcase, FileText, ExternalLink, UserX,
+  GraduationCap, Briefcase, FileText, ExternalLink, UserX, Eye,
 } from "lucide-react";
 import type { CandidatureWithCandidat } from "@/types";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { CandidatDetailsDialog } from "./CandidatDetailsDialog";
 
 interface CandidaturePanelProps {
   candidatures: CandidatureWithCandidat[];
@@ -14,6 +16,7 @@ interface CandidaturePanelProps {
 }
 
 export function CandidaturePanel({ candidatures, onAction, pendingActionId }: CandidaturePanelProps) {
+  const [detailsTarget, setDetailsTarget] = useState<CandidatureWithCandidat | null>(null);
   return (
     <div className="border-t border-border/30 bg-gradient-to-b from-muted/15 to-transparent p-4 animate-scale-in">
       {candidatures.length === 0 ? (
@@ -64,6 +67,16 @@ export function CandidaturePanel({ candidatures, onAction, pendingActionId }: Ca
 
                 {/* Actions */}
                 <div className="flex items-center gap-1.5 shrink-0">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setDetailsTarget(c)}
+                    aria-label="Voir le profil du candidat"
+                    className="h-7 gap-1 rounded-lg text-[11px] px-2.5 shadow-none"
+                  >
+                    <Eye className="size-3" aria-hidden="true" />
+                    Détails
+                  </Button>
                   {c.statut === "en_attente" ? (
                     <>
                       <Button
@@ -151,6 +164,13 @@ export function CandidaturePanel({ candidatures, onAction, pendingActionId }: Ca
           ))}
         </div>
       )}
+
+      <CandidatDetailsDialog
+        candidature={detailsTarget}
+        onClose={() => setDetailsTarget(null)}
+        onAction={(id, action) => { onAction(id, action); setDetailsTarget(null); }}
+        pendingActionId={pendingActionId}
+      />
     </div>
   );
 }

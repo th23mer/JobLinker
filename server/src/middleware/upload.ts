@@ -1,9 +1,13 @@
 import multer from "multer";
 import path from "path";
+import fs from "fs";
+
+const cvDir = path.join(__dirname, "../../uploads/cvs");
+fs.mkdirSync(cvDir, { recursive: true });
 
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => {
-    cb(null, path.join(__dirname, "../../uploads/cvs"));
+    cb(null, cvDir);
   },
   filename: (_req, file, cb) => {
     const unique = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
