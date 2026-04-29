@@ -1,7 +1,11 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
-import { Link2, LogOut, LayoutDashboard, Menu, Sparkles, Globe } from "lucide-react";
+import { useTranslation } from "@/hooks/useTranslation";
+import { useProfileModal } from "@/context/ProfileModalContext";
+import { Link2, LogOut, LayoutDashboard, Menu, Sparkles, Globe, User } from "lucide-react";
+import { api } from "@/services/api";
+import type { Recruteur, Candidat } from "@/types";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -12,8 +16,9 @@ import { cn } from "@/lib/utils";
 
 export default function Navbar() {
   const { user, logout, isAuthenticated } = useAuth();
-  const { language, setLanguage } = useLanguage();
-  const { t } = useTranslation();
+  const { setLanguage } = useLanguage();
+  const { language, t } = useTranslation();
+  const { openProfile } = useProfileModal();
   const navigate = useNavigate();
   const location = useLocation();
   const [scrolled, setScrolled] = useState(false);
@@ -32,6 +37,10 @@ export default function Navbar() {
   const handleLogout = () => {
     logout();
     navigate("/");
+  };
+
+  const toggleLanguage = () => {
+    setLanguage(language === "fr" ? "en" : "fr");
   };
 
   const dashboardPath =
@@ -113,38 +122,12 @@ export default function Navbar() {
               <span className="font-heading text-lg font-bold tracking-tight text-foreground leading-none">
                 JobLinker
               </span>
-              <span className="text-[10px] font-medium text-muted-foreground/70 tracking-wider uppercase">Plateforme de recrutement</span>
+              <span className="text-[10px] font-medium text-muted-foreground/70 tracking-wider uppercase">{t("nav.subtitle")}</span>
             </div>
           </Link>
 
           {/* Desktop nav */}
           <div className="hidden md:flex items-center gap-1">
-            {/* Language Selector */}
-            <div className="inline-flex items-center gap-1 rounded-full border border-border/70 bg-background/85 p-1 text-xs font-semibold shadow-sm backdrop-blur mr-2">
-              <button
-                type="button"
-                onClick={() => setLanguage("fr")}
-                className={`rounded-full px-2.5 py-1 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 ${
-                  language === "fr" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
-                }`}
-                aria-pressed={language === "fr"}
-                aria-label="Basculer la langue en français"
-              >
-                FR
-              </button>
-              <button
-                type="button"
-                onClick={() => setLanguage("en")}
-                className={`rounded-full px-2.5 py-1 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 ${
-                  language === "en" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
-                }`}
-                aria-pressed={language === "en"}
-                aria-label="Switch language to English"
-              >
-                EN
-              </button>
-            </div>
-
             <Button
               variant="ghost"
               size="sm"
@@ -152,9 +135,23 @@ export default function Navbar() {
               className={cn(isActive("/offres") && "bg-accent text-accent-foreground")}
             >
               <Link to="/offres" aria-current={isActive("/offres") ? "page" : undefined}>
-                {t("offres")}
+                {t("nav.offers")}
               </Link>
             </Button>
+
+            {/* Language toggle */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={toggleLanguage}
+              className="text-muted-foreground gap-1.5"
+              aria-label={language === "fr" ? "Switch to English" : "Basculer en francais"}
+            >
+              <Globe className="size-4" />
+              <span className="text-xs font-semibold uppercase">{language === "fr" ? "FR" : "EN"}</span>
+            </Button>
+
+            <Separator orientation="vertical" className="h-6 mx-1" />
 
             {isAuthenticated ? (
               <>
@@ -166,13 +163,55 @@ export default function Navbar() {
                 >
                   <Link to={dashboardPath} aria-current={isActive(dashboardPath) ? "page" : undefined}>
                     <LayoutDashboard className="size-4" />
-                    {t("dashboard")}
+                    {t("nav.dashboard")}
                   </Link>
                 </Button>
-                <Button variant="ghost" size="sm" onClick={handleLogout} className="text-muted-foreground hover:text-destructive" aria-label={t("nav.logout")}>
-                  <LogOut className="size-4" />
-                  <span className="hidden lg:inline">{t("nav.logout")}</span>
-                </Button>
+                {/* Avatar dropdown */}
+                <div className="relative flex items-center gap-3">
+                  
+                  <button
+                    type="button"
+                    aria-haspopup="true"
+                    aria-expanded={avatarOpen}
+                    onClick={(e) => { e.stopPropagation(); setAvatarOpen((v) => !v); }}
+                    className="size-10 rounded-full flex items-center justify-center text-sm font-bold text-white ring-2 ring-background"
+                    onMouseDown={(e) => e.preventDefault()}
+                    style={avatarStyle}
+                  >
+                    <span className="select-none">{getInitials(profileName)}</span>
+                  </button>
+                  {avatarOpen && (
+                    <div className="absolute right-0 top-full mt-2 w-56 overflow-hidden rounded-xl border border-border/40 bg-background shadow-xl z-40">
+                      <div className="flex items-center gap-3 border-b border-border/30 px-4 py-3 bg-muted/20">
+                        <div className="size-9 rounded-full flex items-center justify-center text-xs font-bold text-white ring-2 ring-background" style={avatarStyle}>
+                          {getInitials(profileName)}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-semibold text-foreground">{displayName}</p>
+                          <p className="truncate text-[11px] uppercase tracking-wider text-muted-foreground/70">{user?.role}</p>
+                        </div>
+                      </div>
+                      {user?.role === "recruteur" && (
+                        <button
+                          type="button"
+                          className="w-full flex items-center gap-2 text-left px-4 py-2.5 text-sm text-foreground hover:bg-muted/30"
+                          onClick={() => { setAvatarOpen(false); openProfile(); }}
+                        >
+                          <User className="size-4 text-muted-foreground/80" />
+                          <span>Mon profil</span>
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => { setAvatarOpen(false); handleLogout(); }}
+                        className="w-full flex items-center gap-2 text-left px-4 py-2.5 text-sm text-destructive hover:bg-muted/30"
+                      >
+                        <LogOut className="size-4" />
+                        <span>Déconnexion</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
               </>
             ) : (
               <>
@@ -183,13 +222,13 @@ export default function Navbar() {
                   className={cn(isActive("/login") && "bg-accent text-accent-foreground")}
                 >
                   <Link to="/login" aria-current={isActive("/login") ? "page" : undefined}>
-                    {t("connexion")}
+                    {t("nav.login")}
                   </Link>
                 </Button>
                 <Button size="sm" asChild>
                   <Link to="/register">
                     <Sparkles className="size-3.5" aria-hidden="true" />
-                    {t("sinscrire")}
+                    {t("nav.register")}
                   </Link>
                 </Button>
               </>
@@ -211,44 +250,29 @@ export default function Navbar() {
                   </div>
                   JobLinker
                 </SheetTitle>
-                <SheetDescription>Menu de navigation</SheetDescription>
+                <SheetDescription>{t("nav.subtitle")}</SheetDescription>
               </SheetHeader>
               <nav aria-label="Menu mobile" className="flex flex-col gap-1 mt-8">
-                {/* Language Selector Mobile */}
-                <div className="mb-4 inline-flex items-center gap-1 rounded-full border border-border/70 bg-background/85 p-1 text-xs font-semibold">
-                  <button
-                    type="button"
-                    onClick={() => setLanguage("fr")}
-                    className={`rounded-full px-3 py-1.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 ${
-                      language === "fr" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
-                    }`}
-                    aria-pressed={language === "fr"}
-                    aria-label="Basculer la langue en français"
-                  >
-                    FR
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setLanguage("en")}
-                    className={`rounded-full px-3 py-1.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 ${
-                      language === "en" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
-                    }`}
-                    aria-pressed={language === "en"}
-                    aria-label="Switch language to English"
-                  >
-                    EN
-                  </button>
-                </div>
-
                 <Button
                   variant="ghost"
                   className={cn("justify-start h-12 text-base", isActive("/offres") && "bg-accent")}
                   asChild
                 >
                   <Link to="/offres" onClick={() => setMobileOpen(false)} aria-current={isActive("/offres") ? "page" : undefined}>
-                    {t("offres")}
+                    {t("nav.offers")}
                   </Link>
                 </Button>
+
+                {/* Language toggle mobile */}
+                <Button
+                  variant="ghost"
+                  className="justify-start h-12 text-base"
+                  onClick={() => { toggleLanguage(); setMobileOpen(false); }}
+                >
+                  <Globe className="size-4" />
+                  {language === "fr" ? "English" : "Francais"}
+                </Button>
+
                 {isAuthenticated ? (
                   <>
                     <Button
@@ -258,7 +282,7 @@ export default function Navbar() {
                     >
                       <Link to={dashboardPath} onClick={() => setMobileOpen(false)} aria-current={isActive(dashboardPath) ? "page" : undefined}>
                         <LayoutDashboard className="size-4" />
-                        {t("dashboard")}
+                        {t("nav.dashboard")}
                       </Link>
                     </Button>
                     <Separator className="my-3" />
@@ -266,24 +290,24 @@ export default function Navbar() {
                       variant="ghost"
                       className="justify-start h-12 text-base text-destructive hover:text-destructive"
                       onClick={() => { handleLogout(); setMobileOpen(false); }}
-                      aria-label={t("deconnexion")}
+                      aria-label={t("nav.logout")}
                     >
                       <LogOut className="size-4" />
-                      {t("deconnexion")}
+                      {t("nav.logout")}
                     </Button>
                   </>
                 ) : (
                   <>
                     <Button variant="ghost" className="justify-start h-12 text-base" asChild>
                       <Link to="/login" onClick={() => setMobileOpen(false)}>
-                        {t("connexion")}
+                        {t("nav.login")}
                       </Link>
                     </Button>
                     <div className="mt-4">
                       <Button className="w-full" size="lg" asChild>
                         <Link to="/register" onClick={() => setMobileOpen(false)}>
                           <Sparkles className="size-4" aria-hidden="true" />
-                          {t("sinscrire")}
+                          {t("nav.register")}
                         </Link>
                       </Button>
                     </div>

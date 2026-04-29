@@ -1,4 +1,3 @@
-import React from "react";
 import type { OffreEmploi } from "@/types";
 import { Button } from "@/components/ui/button";
 import { X, Trash2 } from "lucide-react";

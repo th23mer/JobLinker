@@ -1,5 +1,5 @@
 import React from "react";
-import { Search, SlidersHorizontal, RotateCcw, X, BarChart3, Trash2, ArrowDownUp } from "lucide-react";
+import { Search, RotateCcw, X, BarChart3, Trash2, ArrowDownUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 

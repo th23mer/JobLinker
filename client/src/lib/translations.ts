@@ -1,3 +1,5 @@
+export type Language = "fr" | "en";
+
 export const translations = {
   fr: {
     // Navbar
@@ -6,6 +8,17 @@ export const translations = {
     deconnexion: "Déconnexion",
     connexion: "Connexion",
     sinscrire: "S'inscrire",
+
+    // Footer
+    tousDroits: "Tous droits réservés.",
+
+    // Navbar - dotted keys
+    "nav.subtitle": "Plateforme de recrutement",
+    "nav.offers": "Offres d'emploi",
+    "nav.dashboard": "Dashboard",
+    "nav.login": "Connexion",
+    "nav.register": "S'inscrire",
+    "nav.logout": "Déconnexion",
 
     // Offres page
     explorez: "Explorez",
@@ -143,6 +156,27 @@ export const translations = {
     disponibles: "disponible",
     toutes: "Toutes",
     tous: "Tous",
+
+    // Landing - dotted keys (kept verbatim from stashed work)
+    "landing.audienceCandidate": "Je cherche un emploi",
+    "landing.audienceRecruiter": "Je recrute",
+    "landing.searchLabel": "Recherche d'offres",
+    "landing.searchPlaceholder": "Poste, metier, mot-cle...",
+    "landing.locationPlaceholder": "Ville, region...",
+    "landing.discoverCandidate": "Decouvrir les offres",
+    "landing.discoverRecruiter": "Commencer a recruter",
+    "landing.openOffer": "Offre ouverte",
+    "landing.viewThisOffer": "Voir cette offre",
+    "landing.featuresTitle": "Une experience concue pour convertir sans friction",
+    "landing.featuresDesc": "Moins d'effort, plus de pertinence, et une progression naturelle vers l'action.",
+    "landing.categoriesTitle": "Explorez par secteur",
+    "landing.categoriesDesc": "Trouvez des opportunites dans votre domaine d'expertise",
+    "landing.categoryOffers": "offres",
+    "landing.ctaTimeline": "Creez votre compte en quelques minutes",
+    "landing.ctaTitle": "Ne laissez pas la bonne opportunite passer.",
+    "landing.ctaDesc": "Inscription gratuite, rapide et sans engagement. Commencez maintenant et accedez aux offres qui correspondent vraiment a votre profil.",
+    "landing.ctaButton": "Commencer gratuitement",
+    "landing.ctaExplore": "Explorer les offres",
   },
   en: {
     // Navbar
@@ -151,6 +185,17 @@ export const translations = {
     deconnexion: "Sign Out",
     connexion: "Sign In",
     sinscrire: "Sign Up",
+
+    // Footer
+    tousDroits: "All rights reserved.",
+
+    // Navbar - dotted keys
+    "nav.subtitle": "Recruitment Platform",
+    "nav.offers": "Job Offers",
+    "nav.dashboard": "Dashboard",
+    "nav.login": "Sign in",
+    "nav.register": "Sign up",
+    "nav.logout": "Sign out",
 
     // Offres page
     explorez: "Explore",
@@ -288,7 +333,157 @@ export const translations = {
     disponibles: "available",
     toutes: "All",
     tous: "All",
+
+    // Landing - dotted keys (kept verbatim from stashed work)
+    "landing.audienceCandidate": "I am looking for a job",
+    "landing.audienceRecruiter": "I am hiring",
+    "landing.searchLabel": "Job search",
+    "landing.searchPlaceholder": "Job title, keyword...",
+    "landing.locationPlaceholder": "City, region...",
+    "landing.discoverCandidate": "Discover jobs",
+    "landing.discoverRecruiter": "Start recruiting",
+    "landing.openOffer": "Open offer",
+    "landing.viewThisOffer": "View this offer",
+    "landing.featuresTitle": "An experience designed to convert without friction",
+    "landing.featuresDesc": "Less effort, more relevance, and a natural progression toward action.",
+    "landing.categoriesTitle": "Explore by sector",
+    "landing.categoriesDesc": "Find opportunities in your field of expertise",
+    "landing.categoryOffers": "offers",
+    "landing.ctaTimeline": "Create your account in minutes",
+    "landing.ctaTitle": "Don't let the right opportunity pass.",
+    "landing.ctaDesc": "Free, fast, and no-commitment registration. Start now and access offers that truly match your profile.",
+    "landing.ctaButton": "Get started for free",
+    "landing.ctaExplore": "Explore offers",
   },
 };
 
 export type TranslationKey = keyof typeof translations.fr;
+
+export function getHeroContent(language: Language) {
+  const content = {
+    candidate: {
+      benefit: {
+        fr: {
+          headlineBefore: "Trouvez l'emploi qui ",
+          headlineAccent: "vous ressemble",
+          headlineAfter: "",
+          description: "Des centaines d'offres vous attendent dans tous les secteurs en Tunisie. Postulez en toute confiance, on s'occupe du reste.",
+        },
+        en: {
+          headlineBefore: "Find a job that ",
+          headlineAccent: "feels right",
+          headlineAfter: "",
+          description: "Hundreds of offers are waiting for you across every sector in Tunisia. Apply with confidence, we take care of the rest.",
+        },
+      },
+      action: {
+        fr: {
+          headlineBefore: "Votre prochain chapitre ",
+          headlineAccent: "commence maintenant",
+          headlineAfter: "",
+          description: "Dites-nous ce que vous recherchez et decouvrez les offres faites pour vous. Pas de bruit, juste les bonnes opportunites.",
+        },
+        en: {
+          headlineBefore: "Your next chapter ",
+          headlineAccent: "starts now",
+          headlineAfter: "",
+          description: "Tell us what you're looking for and discover offers made for you. No noise, just the right opportunities.",
+        },
+      },
+    },
+    recruiter: {
+      benefit: {
+        fr: {
+          headlineBefore: "Attirez les talents qui feront ",
+          headlineAccent: "la difference",
+          headlineAfter: "",
+          description: "Publiez vos offres en quelques minutes et recevez des candidatures de personnes motivees, pretes a contribuer.",
+        },
+        en: {
+          headlineBefore: "Attract talent that makes ",
+          headlineAccent: "the difference",
+          headlineAfter: "",
+          description: "Post your offers in minutes and receive applications from motivated people, ready to contribute.",
+        },
+      },
+      action: {
+        fr: {
+          headlineBefore: "Votre prochaine recrue est ",
+          headlineAccent: "deja ici",
+          headlineAfter: "",
+          description: "Un outil simple pour publier, trier et choisir. Concentrez-vous sur les personnes, pas sur la paperasse.",
+        },
+        en: {
+          headlineBefore: "Your next hire is ",
+          headlineAccent: "already here",
+          headlineAfter: "",
+          description: "A simple tool to post, sort, and choose. Focus on people, not paperwork.",
+        },
+      },
+    },
+  } as const;
+
+  return (audience: "candidate" | "recruiter", variant: "benefit" | "action") =>
+    content[audience][variant][language];
+}
+
+export function getCandidateFeatureCards(language: Language) {
+  if (language === "en") {
+    return [
+      { title: "Relevance-based search", desc: "Find offers truly suited to your profile with fast, precise filters." },
+      { title: "Verified recruiters", desc: "Apply only to listings from credible, active companies." },
+      { title: "Simplified application", desc: "Send your profile in a few clicks without friction or endless forms." },
+      { title: "Transparent tracking", desc: "Stay in control of your applications and see their status in real time." },
+      { title: "Clear recruiter space", desc: "Post, sort, and track applications from a dashboard designed for speed." },
+    ];
+  }
+  return [
+    { title: "Recherche par pertinence", desc: "Trouvez des offres reellement adaptees a votre profil grace a des filtres rapides et precis." },
+    { title: "Recruteurs verifies", desc: "Postulez uniquement sur des annonces publiees par des entreprises credibles et actives." },
+    { title: "Candidature simplifiee", desc: "Envoyez votre profil en quelques clics sans friction ni formulaires interminables." },
+    { title: "Suivi transparent", desc: "Gardez le controle sur vos candidatures et voyez leur statut en temps reel." },
+    { title: "Espace recruteur clair", desc: "Publiez, triez et suivez les candidatures depuis un tableau de bord concu pour agir vite." },
+  ];
+}
+
+export function getRecruiterFeatureCards(language: Language) {
+  if (language === "en") {
+    return [
+      { title: "Quick publishing", desc: "Post your offers in minutes with a clear, conversion-oriented form." },
+      { title: "More reliable profiles", desc: "Receive better-targeted applications with structured, verified information." },
+      { title: "Progress tracking", desc: "Visualize application status and speed up decision-making with a single view." },
+      { title: "Simplified sorting", desc: "Quickly evaluate profiles with a uniform, readable application format." },
+      { title: "Talent pipeline", desc: "Build a continuous talent flow to reduce time between need and hire." },
+    ];
+  }
+  return [
+    { title: "Publication rapide", desc: "Diffusez vos offres en quelques minutes avec un formulaire clair et oriente conversion." },
+    { title: "Profils plus fiables", desc: "Recevez des candidatures mieux ciblees grace a des informations structurees et verifiees." },
+    { title: "Suivi d'avancement", desc: "Visualisez l'etat des candidatures et accelerez la prise de decision avec une vue unique." },
+    { title: "Tri simplifie", desc: "Evaluez rapidement les profils grace a un format de candidature homogene et lisible." },
+    { title: "Pipeline talent", desc: "Constituez un flux de talents continu pour reduire le delai entre besoin et embauche." },
+  ];
+}
+
+export function getQuickFilters(language: Language) {
+  if (language === "en") {
+    return [
+      { label: "Permanent", value: "CDI" },
+      { label: "Remote", value: "Télétravail" },
+      { label: "Tech", value: "Développeur" },
+      { label: "Marketing", value: "Marketing" },
+      { label: "Finance", value: "Finance" },
+      { label: "Healthcare", value: "Santé" },
+      { label: "Internship", value: "Stage" },
+    ];
+  }
+  return [
+    { label: "CDI", value: "CDI" },
+    { label: "Teletravail", value: "Télétravail" },
+    { label: "Tech", value: "Développeur" },
+    { label: "Marketing", value: "Marketing" },
+    { label: "Finance", value: "Finance" },
+    { label: "Sante", value: "Santé" },
+    { label: "Stage", value: "Stage" },
+  ];
+}

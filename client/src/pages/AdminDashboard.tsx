@@ -1,13 +1,14 @@
 import { useState, useEffect } from "react";
 import { api } from "@/services/api";
 import type { Recruteur, OffreEmploi, Categorie, Specialite } from "@/types";
-import { Shield, Building2, Briefcase, Tag, CheckCircle, Plus, Trash2, Pencil, X, Save, Sparkles } from "lucide-react";
+import { Shield, Building2, Briefcase, Tag, CheckCircle, Plus, Trash2, Pencil, X, Save, Sparkles, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
+import { OfferDetailsDialog } from "@/components/recruiter/OfferDetailsDialog";
 
 type ConfirmDelete = {
   kind: "offre" | "categorie" | "specialite";
@@ -42,6 +43,7 @@ export default function AdminDashboard() {
   const [deletingSpecId, setDeletingSpecId] = useState<number | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<ConfirmDelete | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [detailsOffre, setDetailsOffre] = useState<OffreEmploi | null>(null);
 
   const selectClass =
     "flex h-11 w-full rounded-xl border border-border/60 bg-background px-4 py-2 text-sm shadow-sm shadow-black/[0.03] transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary/50";
@@ -102,6 +104,7 @@ export default function AdminDashboard() {
     try {
       const updated = await api.patch<OffreEmploi>(`/offres/${id}/valider`);
       setOffres(offres.map((o) => (o.id === id ? updated : o)));
+      setDetailsOffre((cur) => (cur && cur.id === id ? null : cur));
       showSuccess("Offre validee avec succes.");
       pushToast("success", "Offre validee avec succes.");
     } catch {
@@ -428,6 +431,15 @@ export default function AdminDashboard() {
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setDetailsOffre(o)}
+                          aria-label="Voir les details de l'offre"
+                        >
+                          <Eye className="size-4" aria-hidden="true" />
+                          Détails
+                        </Button>
                         {o.statutValidation === "en_attente" && (
                           <Button
                             variant="success"
@@ -626,6 +638,15 @@ export default function AdminDashboard() {
             </TabsContent>
           </Tabs>
         )}
+
+        <OfferDetailsDialog
+          offre={detailsOffre}
+          categories={categories}
+          specialites={specialites}
+          onClose={() => setDetailsOffre(null)}
+          onValidate={validerOffre}
+          validating={detailsOffre ? validatingOffreId === detailsOffre.id : false}
+        />
 
         {confirmDelete && (
           <div

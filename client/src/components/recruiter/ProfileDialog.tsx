@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from "react";
+import { useRef, useEffect } from "react";
 import type { Recruteur } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

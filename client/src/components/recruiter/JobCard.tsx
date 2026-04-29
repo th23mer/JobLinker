@@ -173,7 +173,7 @@ export function JobCard({
               <span className="size-[3px] rounded-full bg-border/60" aria-hidden="true" />
               <span className="inline-flex items-center gap-1">
                 <Clock className="size-3 text-muted-foreground/40" aria-hidden="true" />
-                {formatRelativeTime(offre.createdAt)}
+                {formatRelativeTime(offre.dateCreation)}
               </span>
             </div>
 

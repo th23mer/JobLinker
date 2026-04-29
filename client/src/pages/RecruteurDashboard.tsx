@@ -1,19 +1,37 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { api } from "@/services/api";
-import type { OffreEmploi, CandidatureWithCandidat, Categorie, Specialite, Recruteur } from "@/types";
+import type { OffreEmploi, CandidatureWithCandidat, Categorie, Specialite } from "@/types";
 import { Plus, Briefcase, Inbox } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+
+/* ── Sub-components ── */
+import { StatsCards } from "@/components/recruiter/StatsCards";
+import { FilterBar } from "@/components/recruiter/FilterBar";
+import { JobCard, JobCardSkeleton } from "@/components/recruiter/JobCard";
+import { OfferFormSheet, type OfferFormData } from "@/components/recruiter/OfferFormSheet";
+import { DeleteOfferDialog } from "@/components/recruiter/DeleteOfferDialog";
+import { OfferDetailsDialog } from "@/components/recruiter/OfferDetailsDialog";
+
+type ApiSpecialite = Specialite & { categorie_id?: number | string; id: number | string };
+
+const normalizeSpecialites = (items: ApiSpecialite[]): Specialite[] =>
+  items
+    .map((item) => ({
+      ...item,
+      id: Number(item.id),
+      categorieId: Number(item.categorieId ?? item.categorie_id),
+    }))
+    .filter((item) => Number.isFinite(item.id) && Number.isFinite(item.categorieId));
+
+/* ══════════════════════════════════════════════════════════
+   RecruteurDashboard — orchestrator
+   ══════════════════════════════════════════════════════════ */
 
 export default function RecruteurDashboard() {
   const { user } = useAuth();
-  const location = useLocation();
-  const navigate = useNavigate();
-  const profilOpen = new URLSearchParams(location.search).get("profile") === "1";
-
   /* ── Filters ── */
   const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -68,34 +86,15 @@ export default function RecruteurDashboard() {
   /* ── Offer details ── */
   const [offerDetailsTarget, setOfferDetailsTarget] = useState<OffreEmploi | null>(null);
 
-  /* ── Profile ── */
-  const [profil, setProfil] = useState<Recruteur | null>(null);
-  const [editingProfil, setEditingProfil] = useState(false);
-  const [profilForm, setProfilForm] = useState({
-    nomEntreprise: "",
-    matriculeFiscal: "",
-    adresse: "",
-    description: "",
-    email: "",
-    telephone: "",
-    nomRepresentant: "",
-    prenomRepresentant: "",
-  });
-  const [savingProfil, setSavingProfil] = useState(false);
-
   /* ── General UI ── */
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
-  const [toasts, setToasts] = useState<Array<{ id: number; type: "success" | "error"; message: string }>>([]);
+  const [toasts, setToasts] = useState<Array<{ id: number; type: "success" | "error" | "info"; message: string }>>([]);
 
   /* ════════════════════════════════════════════
      Keyboard shortcut: Escape to close overlays
      ════════════════════════════════════════════ */
-
-  useEffect(() => {
-    setEditingProfil(false);
-  }, [location.search]);
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
@@ -110,13 +109,11 @@ export default function RecruteurDashboard() {
         setDeleteTarget(null);
         setShowCreate(false);
         setEditingOffre(null);
-        setEditingProfil(false);
-        navigate("/recruteur", { replace: true });
       }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [navigate]);
+  }, []);
 
   /* ════════════════════════════════════════════
      Filter logic
@@ -227,8 +224,8 @@ export default function RecruteurDashboard() {
       if (sortBy === "candidatures") {
         return (candidatureStats[b.id]?.total ?? 0) - (candidatureStats[a.id]?.total ?? 0);
       }
-      const aDate = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-      const bDate = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      const aDate = a.dateCreation ? new Date(a.dateCreation).getTime() : 0;
+      const bDate = b.dateCreation ? new Date(b.dateCreation).getTime() : 0;
       if (aDate !== bDate) return bDate - aDate;
       return b.id - a.id;
     });
@@ -354,23 +351,11 @@ export default function RecruteurDashboard() {
       api.get<OffreEmploi[]>(`/offres/recruteur/${user.id}`),
       api.get<Categorie[]>("/categories"),
       api.get<ApiSpecialite[]>("/specialites"),
-      api.get<Recruteur>(`/recruteurs/${user.id}`),
     ])
-      .then(([o, c, s, p]) => {
+      .then(([o, c, s]) => {
         setOffres(o);
         setCategories(c);
         setSpecialites(normalizeSpecialites(s));
-        setProfil(p);
-        setProfilForm({
-          nomEntreprise: p.nomEntreprise || "",
-          matriculeFiscal: p.matriculeFiscal || "",
-          adresse: p.adresse || "",
-          description: p.description || "",
-          email: p.email || "",
-          telephone: p.telephone || "",
-          nomRepresentant: p.nomRepresentant || "",
-          prenomRepresentant: p.prenomRepresentant || "",
-        });
       })
       .catch(() => {
         setError("Impossible de charger les données. Veuillez réessayer.");
@@ -552,31 +537,6 @@ export default function RecruteurDashboard() {
     }
   };
 
-  /* ── Profile ── */
-
-  const handleSaveProfil = async () => {
-    if (!user) return;
-    setSavingProfil(true);
-    setError(null);
-    try {
-      const updated = await api.put<Recruteur>(`/recruteurs/${user.id}`, profilForm);
-      setProfil(updated);
-      setEditingProfil(false);
-      setSuccessMsg("Profil mis à jour avec succès !");
-      pushToast("success", "Profil mis à jour.");
-      setTimeout(() => setSuccessMsg(null), 3000);
-    } catch {
-      setError("Erreur lors de la mise à jour du profil.");
-      pushToast("error", "Impossible de mettre à jour le profil.");
-    }
-    setSavingProfil(false);
-  };
-
-  const closeProfilOverlay = () => {
-    setEditingProfil(false);
-    navigate("/recruteur", { replace: true });
-  };
-
   /* ── Time formatting ── */
 
   const formatRelativeTime = (rawDate?: string) => {
@@ -685,116 +645,50 @@ export default function RecruteurDashboard() {
           </Alert>
         )}
 
-        {/* Stats */}
-        {loading ? (
-          <div className="grid grid-cols-3 gap-4 mb-10">
-            {[1, 2, 3].map((i) => (
-              <Card key={i} className="p-6">
-                <Skeleton className="size-10 rounded-2xl mb-3" />
-                <Skeleton className="h-8 w-16 mb-2" />
-                <Skeleton className="h-4 w-24" />
-              </Card>
-            ))}
-          </div>
-        ) : (
-          <div className="grid grid-cols-3 gap-4 mb-10">
-            {statCards.map((s) => (
-              <Card key={s.label} className="relative overflow-hidden p-6">
-                <div className={`absolute top-0 inset-x-0 h-1 bg-gradient-to-r ${s.gradient}`} />
-                <div className={`size-10 rounded-2xl bg-gradient-to-br ${s.gradient} flex items-center justify-center mb-3 shadow-lg`}>
-                  <s.icon className="size-5 text-white" aria-hidden="true" />
-                </div>
-                <p className="text-3xl font-extrabold font-heading">{s.value}</p>
-                <p className="text-xs text-muted-foreground mt-1 font-medium">{s.label}</p>
-              </Card>
-            ))}
-          </div>
-        )}
+        {/* ── Stats cards ── */}
+        <StatsCards
+          loading={loading}
+          totalOffers={offres.length}
+          pendingCount={offres.filter((o) => o.statutValidation === "en_attente").length}
+          validatedCount={offres.filter((o) => o.statutValidation === "validee").length}
+          onCardClick={(filter) => {
+            if (filter === 'pending') setStatusFilter('en_cours');
+            else if (filter === 'validated') setStatusFilter('validee');
+            else setStatusFilter('all');
+          }}
+        />
 
-        <Tabs defaultValue="offres">
-          <TabsList>
-            <TabsTrigger value="offres">
-              <Briefcase className="size-4" aria-hidden="true" />
-              Mes offres
-            </TabsTrigger>
-            <TabsTrigger value="profil">
-              <User className="size-4" aria-hidden="true" />
-              Mon profil
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="offres">
-        {/* Create form */}
-        {showCreate && (
-          <Card className="mb-8 animate-scale-in overflow-hidden">
-            <div className="h-1.5 bg-gradient-to-r from-emerald-500 via-teal-500 to-teal-500" />
-            <CardHeader>
-              <h2 className="font-heading text-xl font-semibold leading-none tracking-tight">Creer une offre</h2>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleCreate} className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="sm:col-span-2 space-y-2">
-                    <Label className="required">Titre du poste</Label>
-                    <Input required aria-required="true" autoComplete="organization-title" value={form.titre} onChange={(e) => setForm({ ...form, titre: e.target.value })} placeholder="Ex: Developpeur Full Stack" />
-                  </div>
-                  <div className="sm:col-span-2 space-y-2">
-                    <Label>Description</Label>
-                    <Textarea rows={3} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Decrivez le poste en detail..." />
-                  </div>
-                  <div className="sm:col-span-2 space-y-2">
-                    <Label>Exigences</Label>
-                    <Textarea rows={2} value={form.exigences} onChange={(e) => setForm({ ...form, exigences: e.target.value })} placeholder="Competences requises..." />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Type de contrat</Label>
-                    <select aria-label="Type de contrat" value={form.typeContrat} onChange={(e) => setForm({ ...form, typeContrat: e.target.value })} className={selectClass}>
-                      <option value="CDI">CDI</option>
-                      <option value="CDD">CDD</option>
-                      <option value="Stage">Stage</option>
-                      <option value="Freelance">Freelance</option>
-                    </select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Ville</Label>
-                    <Input autoComplete="address-level2" value={form.ville} onChange={(e) => setForm({ ...form, ville: e.target.value })} placeholder="Ex: Tunis" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Experience</Label>
-                    <Input value={form.experienceRequise} onChange={(e) => setForm({ ...form, experienceRequise: e.target.value })} placeholder="Ex: 2-3 ans" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Niveau d'etude</Label>
-                    <select aria-label="Niveau d'etude" value={form.niveauEtude} onChange={(e) => setForm({ ...form, niveauEtude: e.target.value })} className={selectClass}>
-                      <option value="">Selectionner</option>
-                      <option value="Bac">Bac</option>
-                      <option value="Bac+2">Bac+2</option>
-                      <option value="Bac+3">Bac+3</option>
-                      <option value="Bac+5">Bac+5</option>
-                    </select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Categorie</Label>
-                    <select aria-label="Categorie" value={form.categorieId} onChange={(e) => setForm({ ...form, categorieId: e.target.value })} className={selectClass}>
-                      <option value="">Selectionner</option>
-                      {categories.map((c) => <option key={c.id} value={c.id}>{c.nom}</option>)}
-                    </select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Specialite</Label>
-                    <select aria-label="Specialite" value={form.specialiteId} onChange={(e) => setForm({ ...form, specialiteId: e.target.value })} className={selectClass}>
-                      <option value="">Selectionner</option>
-                      {specialites.filter((s) => !form.categorieId || s.categorieId === Number(form.categorieId)).map((s) => <option key={s.id} value={s.id}>{s.nom}</option>)}
-                    </select>
-                  </div>
-                </div>
-                <div className="flex gap-3 pt-2">
-                  <Button type="button" variant="outline" onClick={() => setShowCreate(false)}>Annuler</Button>
-                  <Button type="submit" variant="success" disabled={creating}>{creating ? "Creation..." : "Publier l'offre"}</Button>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
+        {/* ── Filter bar (sticky) ── */}
+        {!loading && offres.length > 0 && (
+          <FilterBar
+            searchQuery={searchInput}
+            onSearchChange={setSearchInput}
+            statusFilter={statusFilter}
+            onStatusFilterChange={(v) => setStatusFilter(v as typeof statusFilter)}
+            contractFilter={contractFilter}
+            onContractFilterChange={setContractFilter}
+            contractOptions={contractOptions}
+            locationFilter={locationFilter}
+            onLocationFilterChange={setLocationFilter}
+            locationOptions={locationOptions}
+            sortBy={sortBy}
+            onSortByChange={(v) => setSortBy(v as typeof sortBy)}
+            onReset={resetFilters}
+            resultCount={filteredOffres.length}
+            totalCount={offres.length}
+            selectedCount={selectedOfferIds.size}
+            totalFilteredCount={filteredOffres.length}
+            onSelectAll={toggleSelectAll}
+            onClearSelection={clearSelection}
+            onBulkDelete={handleBulkDelete}
+            bulkDeleting={bulkDeleting}
+            showPerformance={showPerformance}
+            onTogglePerformance={() => {
+              const next = !showPerformance;
+              setShowPerformance(next);
+              pushToast("info", next ? "Mode performance activé." : "Mode performance désactivé.");
+            }}
+          />
         )}
 
         {/* ── Offers list ── */}
@@ -894,22 +788,6 @@ export default function RecruteurDashboard() {
           deleting={deleting}
           onConfirm={handleDelete}
           onClose={closeDeleteModal}
-        />
-
-        {/* ── Profile dialog ── */}
-        <ProfileDialog
-          profil={profil}
-          open={profilOpen}
-          editing={editingProfil}
-          profilForm={profilForm}
-          saving={savingProfil}
-          onEdit={() => setEditingProfil(true)}
-          onSave={handleSaveProfil}
-          onCancelEdit={() => setEditingProfil(false)}
-          onClose={closeProfilOverlay}
-          onFormChange={(field, value) =>
-            setProfilForm((prev) => ({ ...prev, [field]: value }))
-          }
         />
 
         {/* ── Offer details dialog ── */}

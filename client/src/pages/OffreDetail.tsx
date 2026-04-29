@@ -2,22 +2,19 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { api } from "@/services/api";
 import { useAuth } from "@/context/AuthContext";
-import { useLanguage } from "@/context/LanguageContext";
 import type { OffreEmploi, Candidat } from "@/types";
-import { ArrowLeft, MapPin, Briefcase, GraduationCap, Clock, Send, CheckCircle, Sparkles, File, Upload, Zap, Eye, Users, Home, ChevronRight, Calendar, DollarSign, TrendingUp } from "lucide-react";
+import { ArrowLeft, MapPin, Briefcase, GraduationCap, Send, CheckCircle, Sparkles, File, Upload, Zap, Eye, Users, ChevronRight, Calendar, DollarSign, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function OffreDetail() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
-  const { t } = useLanguage();
   const navigate = useNavigate();
   const [offre, setOffre] = useState<OffreEmploi | null>(null);
   const [loading, setLoading] = useState(true);
@@ -50,11 +47,11 @@ export default function OffreDetail() {
   const handlePostuler = async (e: React.FormEvent) => {
     e.preventDefault();
     if (cvMode === "new" && !cvFile) {
-      setError(t("detail.errorNoCv"));
+      setError("Veuillez sélectionner un CV.");
       return;
     }
     if (cvMode === "default" && !profil?.cv) {
-      setError(t("detail.errorNoDefaultCv"));
+      setError("Aucun CV par défaut trouvé. Veuillez en téléverser un.");
       return;
     }
     setSubmitting(true);
@@ -70,7 +67,7 @@ export default function OffreDetail() {
         fd.append("cv", profil!.cv);
       }
       await api.upload("/candidatures", fd);
-      setSuccess(t("detail.success"));
+      setSuccess("Candidature envoyée avec succès !");
       setShowCelebrate(true);
       window.setTimeout(() => setShowCelebrate(false), 1800);
       setShowPostuler(false);
@@ -127,13 +124,6 @@ export default function OffreDetail() {
   };
 
   const readingTime = Math.max(1, Math.ceil(((offre.description?.length || 0) + (offre.exigences?.length || 0)) / 200));
-
-  const infoPills = [
-    offre.ville && { icon: MapPin, label: offre.ville, color: "text-blue-600" },
-    offre.typeContrat && { icon: Briefcase, label: offre.typeContrat, color: "text-emerald-600" },
-    offre.niveauEtude && { icon: GraduationCap, label: offre.niveauEtude, color: "text-purple-600" },
-    offre.experienceRequise && { icon: Clock, label: offre.experienceRequise, color: "text-orange-600" },
-  ].filter(Boolean) as { icon: typeof MapPin; label: string; color: string }[];
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-muted/30 to-background">

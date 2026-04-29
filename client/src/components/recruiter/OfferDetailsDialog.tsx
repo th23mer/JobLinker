@@ -2,13 +2,15 @@ import { useRef, useEffect } from "react";
 import type { OffreEmploi, Categorie, Specialite } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { X, MapPin, Briefcase, GraduationCap, Clock, Tag } from "lucide-react";
+import { X, MapPin, Briefcase, GraduationCap, Clock, Tag, CheckCircle, DollarSign } from "lucide-react";
 
 interface OfferDetailsDialogProps {
   offre: OffreEmploi | null;
   categories: Categorie[];
   specialites: Specialite[];
   onClose: () => void;
+  onValidate?: (id: number) => void;
+  validating?: boolean;
 }
 
 export function OfferDetailsDialog({
@@ -16,6 +18,8 @@ export function OfferDetailsDialog({
   categories,
   specialites,
   onClose,
+  onValidate,
+  validating,
 }: OfferDetailsDialogProps) {
   const dialogRef = useRef<HTMLDivElement | null>(null);
 
@@ -91,6 +95,9 @@ export function OfferDetailsDialog({
         <div className="p-6 space-y-6">
           {/* Quick info badges */}
           <div className="flex flex-wrap gap-2">
+            <Badge variant={offre.statutValidation === "en_attente" ? "warning" : "success"} className="gap-1.5">
+              {offre.statutValidation === "en_attente" ? "En attente" : "Validée"}
+            </Badge>
             <Badge variant="secondary" className="gap-1.5">
               <Briefcase className="size-3" />
               {offre.typeContrat}
@@ -111,6 +118,12 @@ export function OfferDetailsDialog({
               <Badge variant="secondary" className="gap-1.5">
                 <Tag className="size-3" />
                 {specialite.nom}
+              </Badge>
+            )}
+            {offre.salaire && (
+              <Badge variant="secondary" className="gap-1.5">
+                <DollarSign className="size-3" />
+                {offre.salaire}
               </Badge>
             )}
           </div>
@@ -157,6 +170,18 @@ export function OfferDetailsDialog({
               <p className="text-xs text-muted-foreground/70 mb-1">Niveau d'étude</p>
               <p className="text-sm font-medium text-foreground">{offre.niveauEtude}</p>
             </div>
+            {offre.salaire && (
+              <div className="col-span-2">
+                <p className="text-xs text-muted-foreground/70 mb-1">Salaire</p>
+                <p className="text-sm font-medium text-foreground">{offre.salaire}</p>
+              </div>
+            )}
+            {offre.nomEntreprise && (
+              <div className="col-span-2">
+                <p className="text-xs text-muted-foreground/70 mb-1">Entreprise</p>
+                <p className="text-sm font-medium text-foreground">{offre.nomEntreprise}</p>
+              </div>
+            )}
           </div>
         </div>
 
@@ -170,6 +195,17 @@ export function OfferDetailsDialog({
           >
             Fermer
           </Button>
+          {onValidate && offre.statutValidation === "en_attente" && (
+            <Button
+              type="button"
+              variant="success"
+              onClick={() => onValidate(offre.id)}
+              disabled={validating}
+            >
+              <CheckCircle className="size-4" aria-hidden="true" />
+              {validating ? "Validation..." : "Valider l'offre"}
+            </Button>
+          )}
         </div>
       </div>
     </div>

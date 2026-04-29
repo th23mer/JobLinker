@@ -353,6 +353,21 @@
   animation-play-state: paused;
 }
 
+@keyframes offer-marquee-h {
+  from { transform: translateX(0); }
+  to { transform: translateX(-33.333%); }
+}
+
+.offer-marquee-track-h {
+  animation: offer-marquee-h 30s linear infinite;
+  will-change: transform;
+}
+
+.offer-marquee-track-h:hover,
+.offer-marquee-track-h:focus-within {
+  animation-play-state: paused;
+}
+
 .celebrate-wrap {
   position: relative;
   height: 56px;
@@ -402,6 +417,7 @@
   .animate-scale-in,
   .animate-pulse-soft,
   .offer-marquee-track,
+  .offer-marquee-track-h,
   .gradient-mesh,
   .shimmer {
     animation: none !important;
