@@ -1,11 +1,13 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { useProfileModal } from "@/context/ProfileModalContext";
 import { api } from "@/services/api";
-import type { OffreEmploi, CandidatureWithCandidat, Categorie, Specialite } from "@/types";
-import { Plus, Briefcase, Inbox } from "lucide-react";
+import type { OffreEmploi, CandidatureWithCandidat, Categorie, Specialite, Recruteur } from "@/types";
+import { Plus, Briefcase, Inbox, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import ProfileCompletionBanner from "@/components/ProfileCompletionBanner";
 
 /* ── Sub-components ── */
 import { StatsCards } from "@/components/recruiter/StatsCards";
@@ -16,6 +18,8 @@ import { DeleteOfferDialog } from "@/components/recruiter/DeleteOfferDialog";
 import { OfferDetailsDialog } from "@/components/recruiter/OfferDetailsDialog";
 
 type ApiSpecialite = Specialite & { categorie_id?: number | string; id: number | string };
+
+const OFFRES_PAR_PAGE = 6;
 
 const normalizeSpecialites = (items: ApiSpecialite[]): Specialite[] =>
   items
@@ -32,6 +36,7 @@ const normalizeSpecialites = (items: ApiSpecialite[]): Specialite[] =>
 
 export default function RecruteurDashboard() {
   const { user } = useAuth();
+  const { openProfile } = useProfileModal();
   /* ── Filters ── */
   const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -49,10 +54,14 @@ export default function RecruteurDashboard() {
   const [selectedOffre, setSelectedOffre] = useState<number | null>(null);
   const [candidatures, setCandidatures] = useState<CandidatureWithCandidat[]>([]);
   const [candidatureActionLoadingId, setCandidatureActionLoadingId] = useState<number | null>(null);
+  const [profil, setProfil] = useState<Recruteur | null>(null);
 
   /* ── Bulk selection ── */
   const [selectedOfferIds, setSelectedOfferIds] = useState<Set<number>>(new Set());
   const [bulkDeleting, setBulkDeleting] = useState(false);
+
+  /* ── Pagination ── */
+  const [currentPage, setCurrentPage] = useState(1);
 
   /* ── Performance columns ── */
   const [showPerformance, setShowPerformance] = useState(false);
@@ -92,6 +101,22 @@ export default function RecruteurDashboard() {
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [toasts, setToasts] = useState<Array<{ id: number; type: "success" | "error" | "info"; message: string }>>([]);
 
+  const profileCompletion = useMemo(() => {
+    if (!profil) return 0;
+    const fields = [
+      profil.nomEntreprise,
+      profil.matriculeFiscal,
+      profil.adresse,
+      profil.description,
+      profil.email,
+      profil.telephone,
+      profil.nomRepresentant,
+      profil.prenomRepresentant,
+    ];
+    const filledFields = fields.filter((field) => field && field.trim() !== "").length;
+    return Math.round((filledFields / fields.length) * 100);
+  }, [profil]);
+
   /* ════════════════════════════════════════════
      Keyboard shortcut: Escape to close overlays
      ════════════════════════════════════════════ */
@@ -126,6 +151,7 @@ export default function RecruteurDashboard() {
     setContractFilter("all");
     setLocationFilter("all");
     setSortBy("date");
+    setCurrentPage(1);
     pushToast("success", "Filtres réinitialisés.");
   };
 
@@ -230,6 +256,36 @@ export default function RecruteurDashboard() {
       return b.id - a.id;
     });
   }, [offres, searchQuery, statusFilter, contractFilter, locationFilter, sortBy, candidatureStats]);
+
+  /* ════════════════════════════════════════════
+     Pagination helpers
+     ════════════════════════════════════════════ */
+
+  const totalPages = Math.ceil(filteredOffres.length / OFFRES_PAR_PAGE);
+  const startIndex = (currentPage - 1) * OFFRES_PAR_PAGE;
+  const endIndex = startIndex + OFFRES_PAR_PAGE;
+  const offresPaginees = filteredOffres.slice(startIndex, endIndex);
+
+  const getPageNumbers = () => {
+    const pages = [];
+    const maxPages = 5;
+    
+    if (totalPages <= maxPages) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      pages.push(1);
+      if (currentPage > 3) pages.push("...");
+      
+      const start = Math.max(2, currentPage - 1);
+      const end = Math.min(totalPages - 1, currentPage + 1);
+      
+      for (let i = start; i <= end; i++) pages.push(i);
+      
+      if (currentPage < totalPages - 2) pages.push("...");
+      pages.push(totalPages);
+    }
+    return pages;
+  };
 
   /* ════════════════════════════════════════════
      Offer form helpers
@@ -348,11 +404,13 @@ export default function RecruteurDashboard() {
     setLoading(true);
     setError(null);
     Promise.all([
+      api.get<Recruteur>(`/recruteurs/${user.id}`),
       api.get<OffreEmploi[]>(`/offres/recruteur/${user.id}`),
       api.get<Categorie[]>("/categories"),
       api.get<ApiSpecialite[]>("/specialites"),
     ])
-      .then(([o, c, s]) => {
+      .then(([p, o, c, s]) => {
+        setProfil(p);
         setOffres(o);
         setCategories(c);
         setSpecialites(normalizeSpecialites(s));
@@ -607,6 +665,13 @@ export default function RecruteurDashboard() {
           </div>
         )}
 
+        <ProfileCompletionBanner
+          completionPercentage={profileCompletion}
+          description="Complétez votre profil pour renforcer la confiance des candidats et mettre en valeur votre entreprise."
+          actionLabel="Compléter mon profil"
+          onAction={openProfile}
+        />
+
         {/* ── Page header ── */}
         <div className="mb-10 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div className="space-y-1.5">
@@ -732,29 +797,84 @@ export default function RecruteurDashboard() {
             </Button>
           </Card>
         ) : (
-          /* Offer cards */
-          <div className="space-y-2.5">
+          /* Offer cards with pagination */
+          <div className="space-y-6">
+            <div className="space-y-2.5">
+              {offresPaginees.map((offre) => (
+                <JobCard
+                  key={offre.id}
+                  offre={offre}
+                  stat={candidatureStats[offre.id]}
+                  loadingStats={loadingStats}
+                  isExpanded={selectedOffre === offre.id}
+                  candidatures={selectedOffre === offre.id ? candidatures : []}
+                  onToggleCandidatures={viewCandidatures}
+                  onEdit={openEditForm}
+                  onDelete={openDeleteModal}
+                  onViewDetails={(offer) => setOfferDetailsTarget(offer)}
+                  onCandidatureAction={handleCandidatureAction}
+                  formatRelativeTime={formatRelativeTime}
+                  actionLoadingId={candidatureActionLoadingId}
+                  selected={selectedOfferIds.has(offre.id)}
+                  onSelectToggle={toggleSelectOffer}
+                  showPerformance={showPerformance}
+                />
+              ))}
+            </div>
 
-            {filteredOffres.map((offre) => (
-              <JobCard
-                key={offre.id}
-                offre={offre}
-                stat={candidatureStats[offre.id]}
-                loadingStats={loadingStats}
-                isExpanded={selectedOffre === offre.id}
-                candidatures={selectedOffre === offre.id ? candidatures : []}
-                onToggleCandidatures={viewCandidatures}
-                onEdit={openEditForm}
-                onDelete={openDeleteModal}
-                onViewDetails={(offer) => setOfferDetailsTarget(offer)}
-                onCandidatureAction={handleCandidatureAction}
-                formatRelativeTime={formatRelativeTime}
-                actionLoadingId={candidatureActionLoadingId}
-                selected={selectedOfferIds.has(offre.id)}
-                onSelectToggle={toggleSelectOffer}
-                showPerformance={showPerformance}
-              />
-            ))}
+            {/* Pagination controls */}
+            {totalPages > 1 && (
+              <div className="flex flex-col items-center justify-center gap-6 py-8">
+                <div className="text-sm text-muted-foreground font-semibold">
+                  Page <span className="font-bold text-foreground">{currentPage}</span> sur <span className="font-bold text-foreground">{totalPages}</span> • {filteredOffres.length} offre{filteredOffres.length > 1 ? "s" : ""}
+                </div>
+                
+                <div className="flex items-center gap-2 flex-wrap justify-center">
+                  {/* Previous button */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                    disabled={currentPage === 1}
+                    className="font-semibold"
+                  >
+                    <ChevronLeft className="size-4 mr-1" aria-hidden="true" />
+                    Précédent
+                  </Button>
+
+                  {/* Page numbers */}
+                  <div className="flex items-center gap-1">
+                    {getPageNumbers().map((page, idx) => (
+                      page === "..." ? (
+                        <span key={`dots-${idx}`} className="px-2 text-muted-foreground font-bold">…</span>
+                      ) : (
+                        <Button
+                          key={page}
+                          variant={currentPage === page ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setCurrentPage(page as number)}
+                          className={`w-10 h-10 font-bold ${currentPage === page ? "bg-primary hover:bg-primary/90" : ""}`}
+                        >
+                          {page}
+                        </Button>
+                      )
+                    ))}
+                  </div>
+
+                  {/* Next button */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                    disabled={currentPage === totalPages}
+                    className="font-semibold"
+                  >
+                    Suivant
+                    <ChevronRight className="size-4 ml-1" aria-hidden="true" />
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         )}
 

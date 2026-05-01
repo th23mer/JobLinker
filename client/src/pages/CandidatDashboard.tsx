@@ -5,13 +5,13 @@ import { useTranslation } from "@/hooks/useTranslation";
 import { useCandidatProfileModal } from "@/context/CandidatProfileModalContext";
 import { api } from "@/services/api";
 import type { Candidat, Candidature } from "@/types";
-import { FileText, Clock, CheckCircle, XCircle, Inbox, TrendingUp, AlertCircle, ChevronLeft, ChevronRight } from "lucide-react";
+import { FileText, Clock, CheckCircle, XCircle, Inbox, TrendingUp, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import ProfileCompletionBanner from "@/components/ProfileCompletionBanner";
 
 const CANDIDATURES_PAR_PAGE = 6;
 
@@ -23,6 +23,7 @@ export default function CandidatDashboard() {
   const [candidatures, setCandidatures] = useState<Candidature[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
+  const [viewFilter, setViewFilter] = useState<"all" | "en_attente" | "acceptee" | "refusee">("all");
 
   const calculateProfileCompletion = (p: Candidat | null) => {
     if (!p) return 0;
@@ -42,7 +43,6 @@ export default function CandidatDashboard() {
   };
 
   const profileCompletion = calculateProfileCompletion(profil);
-  const isProfileComplete = profileCompletion === 100;
 
   useEffect(() => {
     if (!user) return;
@@ -67,16 +67,23 @@ export default function CandidatDashboard() {
   };
 
   const statCards = [
-    { label: t("total"), value: candidatures.length, gradient: "from-primary to-primary-light", icon: FileText },
-    { label: t("candidatureEnAttente"), value: candidatures.filter((c) => c.statut === "en_attente").length, gradient: "from-amber-500 to-orange-400", icon: Clock },
-    { label: t("acceptees"), value: candidatures.filter((c) => c.statut === "acceptee").length, gradient: "from-emerald-500 to-teal-400", icon: TrendingUp },
+    { label: t("total"), value: candidatures.length, gradient: "from-primary to-primary-light", icon: FileText, filter: "all" as const },
+    { label: t("candidatureEnAttente"), value: candidatures.filter((c) => c.statut === "en_attente").length, gradient: "from-amber-500 to-orange-400", icon: Clock, filter: "en_attente" as const },
+    { label: t("acceptees"), value: candidatures.filter((c) => c.statut === "acceptee").length, gradient: "from-emerald-500 to-teal-400", icon: TrendingUp, filter: "acceptee" as const },
   ];
 
   // Pagination
-  const totalPages = Math.ceil(candidatures.length / CANDIDATURES_PAR_PAGE);
+  const candidaturesFiltres =
+    viewFilter === "acceptee"
+      ? candidatures.filter((c) => c.statut === "acceptee")
+      : viewFilter === "en_attente"
+        ? candidatures.filter((c) => c.statut === "en_attente")
+      : candidatures;
+
+  const totalPages = Math.ceil(candidaturesFiltres.length / CANDIDATURES_PAR_PAGE);
   const startIndex = (currentPage - 1) * CANDIDATURES_PAR_PAGE;
   const endIndex = startIndex + CANDIDATURES_PAR_PAGE;
-  const candidaturesPaginees = candidatures.slice(startIndex, endIndex);
+  const candidaturesPaginees = candidaturesFiltres.slice(startIndex, endIndex);
 
   // Pagination pages to display
   const getPageNumbers = () => {
@@ -100,33 +107,20 @@ export default function CandidatDashboard() {
     return pages;
   };
 
+  const handleViewFilterChange = (filter: "all" | "en_attente" | "acceptee" | "refusee") => {
+    setViewFilter(filter);
+    setCurrentPage(1);
+  };
+
   return (
     <div className="pb-16 min-h-screen bg-gradient-to-b from-muted/40 to-background">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
-        {/* Profile Completion Alert */}
-        {!isProfileComplete && (
-          <Alert className="mb-8 border-amber-200 bg-amber-50">
-            <AlertCircle className="h-4 w-4 text-amber-600" />
-            <AlertTitle className="text-amber-900">Profil incomplet</AlertTitle>
-            <AlertDescription className="text-amber-800 mt-2">
-              <p className="mb-3">Complétez votre profil pour augmenter vos chances d'être contacté par les recruteurs.</p>
-              <div className="mb-3">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium">{profileCompletion}% complété</span>
-                </div>
-                <div className="w-full bg-amber-200 rounded-full h-2">
-                  <div
-                    className="bg-amber-600 h-2 rounded-full transition-all duration-300"
-                    style={{ width: `${profileCompletion}%` }}
-                  />
-                </div>
-              </div>
-              <Button size="sm" onClick={openProfile} variant="outline" className="border-amber-600 text-amber-900 hover:bg-amber-100">
-                Compléter mon profil
-              </Button>
-            </AlertDescription>
-          </Alert>
-        )}
+        <ProfileCompletionBanner
+          completionPercentage={profileCompletion}
+          description="Complétez votre profil pour augmenter vos chances d'être contacté par les recruteurs."
+          actionLabel="Compléter mon profil"
+          onAction={openProfile}
+        />
 
         {/* Header */}
         <div className="mb-8">
@@ -136,9 +130,9 @@ export default function CandidatDashboard() {
           <p className="text-muted-foreground mt-2">{t("gererCandidatures")}</p>
         </div>
 
-        {/* Stats */}
+        {/* Stats / filters */}
         {loading ? (
-          <div className="grid grid-cols-3 gap-4 mb-8">
+          <div className="grid grid-cols-1 gap-4 mb-8 sm:grid-cols-3">
             {Array.from({ length: 3 }).map((_, i) => (
               <Card key={i} className="relative overflow-hidden p-6">
                 <Skeleton className="h-1 absolute top-0 inset-x-0" />
@@ -149,17 +143,30 @@ export default function CandidatDashboard() {
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-3 gap-4 mb-8">
-            {statCards.map((s) => (
-              <Card key={s.label} className="relative overflow-hidden p-6">
-                <div className={`absolute top-0 inset-x-0 h-1 bg-gradient-to-r ${s.gradient}`} />
-                <div className={`size-10 rounded-2xl bg-gradient-to-br ${s.gradient} flex items-center justify-center mb-3 shadow-lg`}>
-                  <s.icon className="size-5 text-white" aria-hidden="true" />
-                </div>
-                <p className="text-3xl font-extrabold font-heading">{s.value}</p>
-                <p className="text-xs text-muted-foreground mt-1 font-medium">{s.label}</p>
-              </Card>
-            ))}
+          <div className="grid grid-cols-1 gap-4 mb-8 sm:grid-cols-3">
+            {statCards.map((card) => {
+              const isActive = viewFilter === card.filter;
+              const Icon = card.icon;
+
+              return (
+                <button
+                  key={card.label}
+                  type="button"
+                  onClick={() => handleViewFilterChange(card.filter)}
+                  className={`group relative overflow-hidden rounded-3xl border bg-background p-6 text-left shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg ${
+                    isActive ? "border-primary/40 ring-2 ring-primary/20 shadow-md" : "border-border/50"
+                  }`}
+                  aria-pressed={isActive}
+                >
+                  <div className={`absolute top-0 inset-x-0 h-1 bg-gradient-to-r ${card.gradient}`} />
+                  <div className={`size-10 rounded-2xl bg-gradient-to-br ${card.gradient} flex items-center justify-center mb-4 shadow-lg`}>
+                    <Icon className="size-5 text-white" aria-hidden="true" />
+                  </div>
+                  <p className="text-3xl font-extrabold font-heading">{card.value}</p>
+                  <p className="text-sm text-muted-foreground mt-1 font-medium">{card.label}</p>
+                </button>
+              );
+            })}
           </div>
         )}
 
@@ -201,13 +208,25 @@ export default function CandidatDashboard() {
               </div>
             ) : (
               <div className="space-y-3">
-                {candidatures.length === 0 ? (
+                {candidaturesFiltres.length === 0 ? (
                   <Card className="p-20 text-center">
                     <div className="size-20 bg-gradient-to-br from-muted to-muted/50 rounded-3xl flex items-center justify-center mx-auto mb-4">
                       <Inbox className="size-9 text-muted-foreground/30" aria-hidden="true" />
                     </div>
-                    <h2 className="font-heading text-lg font-bold mb-2">{t("aucuneCandidature")}</h2>
-                    <p className="text-muted-foreground text-sm max-w-xs mx-auto mb-6">{t("parcourezOffres")}</p>
+                    <h2 className="font-heading text-lg font-bold mb-2">
+                      {viewFilter === "acceptee"
+                        ? "Aucune offre validée"
+                        : viewFilter === "en_attente"
+                          ? "Aucune candidature en attente"
+                          : t("aucuneCandidature")}
+                    </h2>
+                    <p className="text-muted-foreground text-sm max-w-xs mx-auto mb-6">
+                      {viewFilter === "acceptee"
+                        ? "Vos candidatures acceptées apparaîtront ici."
+                        : viewFilter === "en_attente"
+                          ? "Vos candidatures en attente apparaîtront ici."
+                          : t("parcourezOffres")}
+                    </p>
                     <Button asChild>
                       <Link to="/offres">{t("voirOffres")}</Link>
                     </Button>

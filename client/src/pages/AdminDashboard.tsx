@@ -49,6 +49,7 @@ export default function AdminDashboard() {
   const [confirmDelete, setConfirmDelete] = useState<ConfirmDelete | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [detailsOffre, setDetailsOffre] = useState<OffreEmploi | null>(null);
+  const [detailsRecruteur, setDetailsRecruteur] = useState<Recruteur | null>(null);
   const [recruteursCurrentPage, setRecruteursCurrentPage] = useState(1);
   const [offresCurrentPage, setOffresCurrentPage] = useState(1);
   const [categoriesCurrentPage, setCategoriesCurrentPage] = useState(1);
@@ -590,7 +591,7 @@ export default function AdminDashboard() {
                 ) : (
                   recruteursPaginees.map((r) => (
                     <Card key={r.id} className="p-4 flex items-center justify-between hover:shadow-md hover:shadow-black/[0.03] transition-all">
-                      <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-4 flex-1">
                         <div className="size-12 rounded-2xl bg-gradient-to-br from-blue-500/10 to-cyan-500/10 flex items-center justify-center">
                           <Building2 className="size-5 text-blue-600" aria-hidden="true" />
                         </div>
@@ -614,6 +615,15 @@ export default function AdminDashboard() {
                             {validatingRecruteurId === r.id ? "Validation..." : "Valider"}
                           </Button>
                         )}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setDetailsRecruteur(r)}
+                          aria-label="Voir les details du recruteur"
+                        >
+                          <Eye className="size-4" aria-hidden="true" />
+                          Voir
+                        </Button>
                       </div>
                     </Card>
                   ))
@@ -1120,6 +1130,93 @@ export default function AdminDashboard() {
           onValidate={validerOffre}
           validating={detailsOffre ? validatingOffreId === detailsOffre.id : false}
         />
+
+        {/* Modal pour les détails du recruteur */}
+        {detailsRecruteur && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+            <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 border-b">
+                <div className="flex items-center gap-4">
+                  <div className="size-12 rounded-2xl bg-gradient-to-br from-blue-500/10 to-cyan-500/10 flex items-center justify-center">
+                    <Building2 className="size-5 text-blue-600" aria-hidden="true" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-xl">{detailsRecruteur.nomEntreprise}</CardTitle>
+                    <Badge variant={detailsRecruteur.statutValidation === "en_attente" ? "warning" : "success"} className="mt-2">
+                      {detailsRecruteur.statutValidation === "en_attente" ? "En attente" : "Validé"}
+                    </Badge>
+                  </div>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  onClick={() => setDetailsRecruteur(null)}
+                  aria-label="Fermer"
+                >
+                  <X className="size-5" aria-hidden="true" />
+                </Button>
+              </CardHeader>
+              <CardContent className="space-y-6 pt-6">
+                {/* Informations d'entreprise */}
+                <div>
+                  <h3 className="font-bold text-lg mb-3 flex items-center gap-2">
+                    <Building2 className="size-5 text-blue-600" aria-hidden="true" />
+                    Informations d'entreprise
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Nom de l'entreprise</p>
+                      <p className="font-bold mt-1">{detailsRecruteur.nomEntreprise}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Matricule fiscal</p>
+                      <p className="font-bold mt-1">{detailsRecruteur.matriculeFiscal || "—"}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Adresse</p>
+                      <p className="font-bold mt-1">{detailsRecruteur.adresse || "—"}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Téléphone</p>
+                      <p className="font-bold mt-1">{detailsRecruteur.telephone || "—"}</p>
+                    </div>
+                  </div>
+                  <div className="mt-4">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Description</p>
+                    <p className="font-bold mt-1 text-sm leading-relaxed">{detailsRecruteur.description || "—"}</p>
+                  </div>
+                </div>
+
+                {/* Informations du représentant */}
+                <div className="border-t pt-4">
+                  <h3 className="font-bold text-lg mb-3 flex items-center gap-2">
+                    <Briefcase className="size-5 text-violet-600" aria-hidden="true" />
+                    Représentant de l'entreprise
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Nom</p>
+                      <p className="font-bold mt-1">{detailsRecruteur.nomRepresentant || "—"}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Prénom</p>
+                      <p className="font-bold mt-1">{detailsRecruteur.prenomRepresentant || "—"}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Informations de contact */}
+                <div className="border-t pt-4">
+                  <h3 className="font-bold text-lg mb-3">Contact</h3>
+                  <div>
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Email</p>
+                    <p className="font-bold mt-1 break-all">{detailsRecruteur.email}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
         {confirmDelete && (
           <div

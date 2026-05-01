@@ -1,10 +1,19 @@
 import { AlertCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface ProfileCompletionBannerProps {
   completionPercentage: number;
+  description?: string;
+  actionLabel?: string;
+  onAction?: () => void;
 }
 
-export default function ProfileCompletionBanner({ completionPercentage }: ProfileCompletionBannerProps) {
+export default function ProfileCompletionBanner({
+  completionPercentage,
+  description = "Complétez votre profil pour augmenter vos chances d'être contacté.",
+  actionLabel,
+  onAction,
+}: ProfileCompletionBannerProps) {
   if (completionPercentage === 100) return null;
 
   return (
@@ -13,9 +22,7 @@ export default function ProfileCompletionBanner({ completionPercentage }: Profil
         <AlertCircle className="size-5 text-amber-600 shrink-0 mt-0.5" aria-hidden="true" />
         <div className="flex-1">
           <h3 className="font-semibold text-amber-900 mb-2">Profil incomplet</h3>
-          <p className="text-sm text-amber-800 mb-3">
-            Compléter votre profil augmente vos chances d'être contacté par les recruteurs.
-          </p>
+          <p className="text-sm text-amber-800 mb-3">{description}</p>
           <div className="flex items-center gap-3">
             <div className="flex-1 h-2 rounded-full bg-amber-200/50 overflow-hidden">
               <div
@@ -25,6 +32,17 @@ export default function ProfileCompletionBanner({ completionPercentage }: Profil
             </div>
             <span className="text-sm font-semibold text-amber-900 ws-nowrap">{completionPercentage}%</span>
           </div>
+          {actionLabel && onAction && (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={onAction}
+              className="mt-4 border-amber-600 text-amber-900 hover:bg-amber-100"
+            >
+              {actionLabel}
+            </Button>
+          )}
         </div>
       </div>
     </div>

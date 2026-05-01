@@ -676,20 +676,6 @@ export default function OffreDetail() {
             {/* Sidebar - Sticky */}
             <div className="lg:col-span-1">
               <div className="sticky top-24 space-y-6">
-                {user && user.role !== "candidat" && !success && (
-                  <Card className="border-2 border-primary/30 bg-gradient-to-br from-primary/5 to-primary/10 shadow-lg">
-                    <CardHeader className="pb-4">
-                      <h3 className="font-heading font-bold text-lg text-foreground">Compte candidat requis</h3>
-                      <p className="text-xs text-muted-foreground font-medium">Pour postuler, utilisez un compte candidat.</p>
-                    </CardHeader>
-                    <CardContent>
-                      <Button asChild size="lg" variant="outline" className="w-full h-12 font-bold text-base">
-                        <Link to="/register?role=candidat">Créer un compte candidat</Link>
-                      </Button>
-                    </CardContent>
-                  </Card>
-                )}
-
                 {/* Company Info */}
                 {offre.nomEntreprise && (
                   <Card className="border border-border/50 shadow-sm">
