@@ -1,6 +1,23 @@
+# Dependencies & build output
 node_modules/
 dist/
+
+# Environment & secrets
 .env
-*.log
-.claude
+.env.local
+
+# User uploads (runtime data)
 server/uploads/
+
+# Logs
+*.log
+
+# Local tooling & editor
+.claude
+.mcp.json
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
